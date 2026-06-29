@@ -1,0 +1,36 @@
+% Failure root causes and self-healing outcomes (auto-generated from production dump).
+% Requires \usepackage{booktabs}. \input this file into the IEEEtran document.
+\begin{table}[t]
+\centering
+\caption{Root causes of the 69 wrappers with final status \texttt{error}, and outcomes of the self-healing loop (43 crashed wrappers, 50 automatic repairs).}
+\label{tab:errors}
+\begin{tabular}{@{}llr@{}}
+\toprule
+\multicolumn{3}{@{}l}{\textbf{(a) Root causes of \texttt{error} status} ($n=69$)} \\
+\midrule
+Stage & Root cause & $n$ \\
+\midrule
+Generation & Gemini daily free-tier quota (HTTP 429) & 9 \\
+Generation & Gemini per-request rate limit (HTTP 429) & 1 \\
+Generation & Gemini service overloaded (HTTP 503) & 1 \\
+Generation & Service restart during generation & 3 \\
+Runtime & Execution watchdog (3600\,s), API pollers\textsuperscript{a} & 54 \\
+Runtime & Crash; repair blocked by LLM quota (429) & 1 \\
+\midrule
+ & Total & 69 \\
+\midrule
+\multicolumn{3}{@{}l}{\textbf{(b) Self-healing outcomes} (43 wrappers, all crashes exit~1)} \\
+\midrule
+\multicolumn{2}{@{}l}{Healed after 1 repair (crash never recurred)} & 37 \\
+\multicolumn{2}{@{}l}{Healed after 2 repairs} & 5 \\
+\multicolumn{2}{@{}l}{Still crashing after 3 repairs (retries exhausted)} & 1 \\
+\midrule
+\multicolumn{2}{@{}l}{Final status: completed / stopped / executing} & 28 / 8 / 3 \\
+\multicolumn{2}{@{}l}{Final status: error (later watchdog timeout)\textsuperscript{b}} & 4 \\
+\midrule
+\multicolumn{2}{@{}l}{Wrapper-level healing success} & 42/43 \\
+\multicolumn{2}{@{}l}{Median crash-to-redeploy repair latency} & 33.4\,s \\
+\bottomrule
+\multicolumn{3}{@{}p{0.95\columnwidth}@{}}{\footnotesize \textsuperscript{a}No traceback in stderr (53/54 empty, 1 non-fatal warning); processes were killed while idle-waiting between polling cycles because the 1\,h watchdog is shorter than daily/monthly polling intervals. 48 of the 54 had already delivered data (52,372 points). \textsuperscript{b}All four were repaired successfully and crashed no further; the subsequent \texttt{error} status stems from the watchdog limit, not from the repaired code.} \\
+\end{tabular}
+\end{table}

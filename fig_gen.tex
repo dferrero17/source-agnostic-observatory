@@ -1,0 +1,26 @@
+\begin{tikzpicture}[
+  font=\scriptsize,
+  svc/.style={draw, rounded corners=1pt, align=center, minimum height=18pt,
+              inner sep=3pt, fill=gray!8},
+  mq/.style={draw, align=center, minimum height=14pt, inner sep=2pt,
+             fill=gray!20},
+  ext/.style={draw, dashed, align=center, inner sep=3pt},
+  flow/.style={-{Stealth[length=4pt]}, thick},
+  node distance=14pt and 16pt]
+
+\node[ext] (req) {request\\metadata +\\source config};
+\node[svc, right=of req] (asm) {prompt assembly\\data sample, template,\\rules (Jinja2)};
+\node[svc, right=of asm] (llm) {Gemini\\Flash};
+\node[ext, below=30pt of llm] (live) {live endpoint\\(API sources)};
+\node[svc, right=of llm] (lint) {static validation\\\texttt{ast.parse} +\\placeholder scan};
+\node[mq, right=26pt of lint] (out) {wrapper\\file};
+
+\draw[flow] (req) -- (asm);
+\draw[flow] (asm) -- (llm);
+\draw[flow] (llm) -- (lint);
+\draw[flow] (lint) -- node[above=1pt, pos=.5]{pass} (out);
+\draw[flow, dashed] (lint.north) to[out=140, in=40]
+  node[above=2pt, pos=.5]{lint retry (once)} (llm.north);
+\draw[{Stealth[length=4pt]}-{Stealth[length=4pt]}, thick] (llm) --
+  node[left=2pt, pos=.5, align=center]{\texttt{fetch\_url}\\$\le$15 calls} (live);
+\end{tikzpicture}

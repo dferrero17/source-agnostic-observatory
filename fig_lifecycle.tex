@@ -1,0 +1,33 @@
+\begin{tikzpicture}[
+  font=\scriptsize,
+  svc/.style={draw, rounded corners=1pt, align=center, minimum height=16pt,
+              inner sep=3pt, fill=gray!8},
+  term/.style={draw, align=center, minimum height=16pt, inner sep=3pt,
+               fill=gray!20},
+  flow/.style={-{Stealth[length=4pt]}, thick},
+  node distance=30pt and 38pt]
+
+\node[svc] (pend) {pending};
+\node[svc, right=of pend] (gen) {generating};
+\node[svc, right=of gen] (exec) {executing\\16 at snapshot};
+\node[term, right=of exec] (comp) {completed\\170};
+\node[term] (err) at ($(gen.south) + (-26pt,-52pt)$) {error\\69};
+\node[svc] (retry) at ($(exec.south) + (10pt,-52pt)$) {retrying};
+\node[term] (stop) at ($(comp.south) + (16pt,-52pt)$) {stopped\\141};
+
+\draw[flow] (pend) -- (gen);
+\draw[flow] (gen) -- (exec);
+\draw[flow] (exec) -- (comp);
+\draw[flow] (gen.south) to[bend right=8]
+  node[left, pos=.6]{no code: 14} (err.north);
+\draw[flow] (exec.south west) to[bend right=14]
+  node[above, pos=.42, align=center, fill=white, inner sep=1pt]
+  {watchdog idle: 54\\repair blocked: 1} (err.north east);
+\draw[flow] (exec.south) to[bend right=24]
+  node[left, pos=.45]{crash} (retry.north west);
+\draw[flow] (retry.north) to[bend right=24]
+  node[right, pos=.55, align=center]{repair:\\50 deploys} (exec.south east);
+\draw[flow] (exec.east) to[out=-20, in=110]
+  node[fill=white, inner sep=1.5pt, pos=.55, align=center]
+  {resource\\deleted: 141} (stop.north);
+\end{tikzpicture}

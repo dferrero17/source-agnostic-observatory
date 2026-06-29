@@ -1,0 +1,27 @@
+*.aux
+*.bbl
+*.blg
+*.bcf
+*.log
+*.out
+*.fls
+*.fdb_latexmk
+*.run.xml
+*.toc
+*.lof
+*.lot
+*.synctex.gz
+missfont.log
+.DS_Store
+
+# Python (analysis / figure scripts)
+__pycache__/
+*.pyc
+.venv/
+
+# Large experiment artifacts and production dumps (keep out of git;
+# publish via releases if needed)
+results/
+data/
+models/
+att-paper-data/

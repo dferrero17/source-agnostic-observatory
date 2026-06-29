@@ -1,0 +1,40 @@
+slug: source-agnostic-observatory
+title: "A Source-Agnostic AI-Powered Smart City Observatory: Self-Generating, Self-Healing, and Self-Deploying Data Wrappers in Production"
+authors:
+  - Daniel Martins Ferreira   # manuscript anonymized for ICTAI double-blind review
+  - Sebastião Teixeira
+keywords:
+  - smart city observatory
+  - source-agnostic data ingestion
+  - autonomic computing
+  - self-healing systems
+  - LLM code generation
+  - ETL automation
+  - smart tourism
+target_venue:
+  - ICTAI 2026
+lifecycle: Ideation
+repo: dferrero17/source-agnostic-observatory
+root_file: main.tex
+build: latexmk
+pdf_file: main.pdf
+pdf_url: https://github.com/dferrero17/source-agnostic-observatory/releases/latest/download/main.pdf
+abstract: >
+  A smart city observatory is only as useful as the breadth of sources it can ingest,
+  yet most indicator platforms hard-wire a handful of feeds and pay an engineer to
+  maintain a wrapper for each. We present a production smart city observatory whose
+  ingestion layer is source-agnostic: any REST API, spreadsheet, or CSV export becomes
+  a normalized indicator time series with no source-specific code written by a human.
+  Each source is handled by a data wrapper treated as an autonomic artifact with three
+  properties. It is self-generating: a large language model fills a fixed extraction
+  template from source metadata and a data sample, probing live endpoints before
+  committing to extraction logic. It is self-healing: a monitor re-invokes the model
+  with the crash traceback and repairs the wrapper in place. And it is self-deploying:
+  wrappers are launched, supervised, checkpointed, and relaunched as isolated processes
+  with no operator in the loop. We frame the three properties as a single autonomic
+  manager over the generated artifact and report a 149-day production deployment: 396
+  wrappers across API, XLSX, and CSV sources ingested 164,322 data points; 43 wrappers
+  (10.9%) crashed and entered the repair loop, after which 42 of 43 crashed no further
+  at a median of 33.4 s per repair; and the whole platform runs in roughly 1.5 GiB of
+  memory. The boundary of the approach is sharp: the loops absorb heterogeneity and code
+  defects, while quota, credential, and configuration failures stay outside their reach.
