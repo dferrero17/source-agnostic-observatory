@@ -1,0 +1,23 @@
+% Wrapper outcomes by source type. Values from numbers.tex (production dump).
+\begin{table}[t]
+\centering
+\caption{Wrapper outcomes by source type after \deploymentDays{} days. \emph{Recovered}
+= entered the repair loop and ended in a non-error state. Heterogeneity is absorbed by
+the same three loops regardless of source type.}
+\label{tab:status}
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+Type & $n$ & Completed & Crashed & Recovered & Points \\
+\midrule
+XLSX & \nXLSX{} & 104 (55.3\%) & 26 & 26 & \nDataPointsXLSX{} \\
+API  & \nAPI{} &  52 (28.3\%)\textsuperscript{a} & 14 & 10 & \nDataPointsAPI{} \\
+CSV  & \nCSV{} &  14 (58.3\%) &  3 &  3 & \nDataPointsCSV{} \\
+\midrule
+All  & \nWrappers{} & \nCompleted{} (\pctCompleted\%) & \nRetried{} & \nRecovered{} & \nDataPoints{} \\
+\bottomrule
+\multicolumn{6}{@{}p{0.95\columnwidth}@{}}{\footnotesize
+\textsuperscript{a}API wrappers poll continuously and rarely complete on their own; 54
+ended in \texttt{error} after execution-watchdog termination while idle
+(Section~\ref{sec:res-faults}), not from a code defect.} \\
+\end{tabular}
+\end{table}

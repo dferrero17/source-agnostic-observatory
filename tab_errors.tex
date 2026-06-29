@@ -10,9 +10,9 @@
 \midrule
 Stage & Root cause & $n$ \\
 \midrule
-Generation & Gemini daily free-tier quota (HTTP 429) & 9 \\
-Generation & Gemini per-request rate limit (HTTP 429) & 1 \\
-Generation & Gemini service overloaded (HTTP 503) & 1 \\
+Generation & Model daily free-tier quota (HTTP 429) & 9 \\
+Generation & Model per-request rate limit (HTTP 429) & 1 \\
+Generation & Model provider overloaded (HTTP 503) & 1 \\
 Generation & Service restart during generation & 3 \\
 Runtime & Execution watchdog (3600\,s), API pollers\textsuperscript{a} & 54 \\
 Runtime & Crash; repair blocked by LLM quota (429) & 1 \\

@@ -1,8 +1,11 @@
-# Production screenshots (degeit-roots.ua.pt)
+# Production screenshots
 
-Live screenshots of the production admin backoffice, captured 2026-06-29. Drop the
-exported PNGs here and uncomment the matching `\includegraphics` figure stubs in
-`main.tex`.
+Internal note (not rendered into the PDF). Scrub before sharing this tree as a
+double-blind review mirror: it names the live platform and its URL below.
+
+Live screenshots of the production admin backoffice, captured 2026-06-29 (the
+platform is ROOTS, deployed at degeit-roots.ua.pt). Drop the exported PNGs here
+and uncomment the matching `\includegraphics` figure stubs in `main.tex`.
 
 | File to add | Captured view | Intended figure | Section |
 |---|---|---|---|

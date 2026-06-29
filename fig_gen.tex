@@ -10,7 +10,7 @@
 
 \node[ext] (req) {request\\metadata +\\source config};
 \node[svc, right=of req] (asm) {prompt assembly\\data sample, template,\\rules (Jinja2)};
-\node[svc, right=of asm] (llm) {Gemini\\Flash};
+\node[svc, right=of asm] (llm) {LLM};
 \node[ext, below=30pt of llm] (live) {live endpoint\\(API sources)};
 \node[svc, right=of llm] (lint) {static validation\\\texttt{ast.parse} +\\placeholder scan};
 \node[mq, right=26pt of lint] (out) {wrapper\\file};

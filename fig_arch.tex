@@ -9,7 +9,7 @@
   node distance=14pt and 18pt]
 
 \node[ext] (src) {sources\\API / CSV / XLSX};
-\node[svc, right=of src] (rs) {resource service\\generation + repair\\(Gemini Flash)};
+\node[svc, right=of src] (rs) {resource service\\generation + repair\\(LLM)};
 \node[svc, below=10pt of rs] (wr) {wrapper\\processes};
 \node[mq, right=of wr] (dmq) {data\\broker};
 \node[svc, right=of dmq] (dc) {data\\collector};
