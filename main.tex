@@ -80,7 +80,7 @@ generated code that the repair loop could not fix numbers exactly one (itself
 quota-blocked). Second, cheap generation decouples attempt from yield: only
 \nNonzeroPointWrappers{} of \nWrappers{} wrappers ever produced data, so attempting
 a feed is nearly free but a live indicator is not. Third, crash-triggered LLM
-repair leans toward masking rather than fixing: three of four repaired cases
+repair leans toward masking rather than fixing: three of the four case studies
 recover by swallowing errors, and we down-scope ``recovery'' to restored execution
 because the snapshot cannot confirm the values are right. The autonomic MAPE-K
 loop and its LLM actuator are an organizing lens, not a contribution; the repair
@@ -537,10 +537,10 @@ load and is not a matched control. Two features of the timeline qualify the
 healing counts. Thirty-one of the 50 repair events land on a single day, when a
 credential fix set off a redeploy that restarted every wrapper together, so the
 events are correlated rather than 50 independent failures. The latency is robust
-to this: of the 43 wrappers, the 17 that first crashed on other days have a median
-first-repair latency of 34.0\,s (range 15.5--80.4), indistinguishable from the
-33.2\,s of the 26-wrapper batch, so the headline is not an artifact of the
-mass relaunch. The recovery \emph{counts}, however, do lean on the batch and we
+to this. The headline 33.4\,s is over all 50 repair events; restricted to each
+wrapper's first repair, the 17 that first crashed on other days have a median
+34.0\,s (range 15.5--80.4) against 33.2\,s for the 26-wrapper batch, so the figure
+is not an artifact of the mass relaunch. The recovery \emph{counts}, however, do lean on the batch and we
 report them with that caveat. And since each relaunch overwrites the stderr file, a
 triggering traceback survives only where the last run also crashed; for the
 wrappers that recovered we infer the trigger from the fixes their code carries,
@@ -554,7 +554,8 @@ more consequential result lies.
 \subsection{Faults inside and outside the manager}
 \label{sec:res-faults}
 \input{tab_errors}
-This is the paper's central result. Table~\ref{tab:errors} sorts the \nErrorW{}
+The result in this section is the paper's central one: the binding faults are
+environmental, not bad code. Table~\ref{tab:errors} sorts the \nErrorW{}
 wrappers that ended in \texttt{error} by cause, and few of them indict the
 generated code. Fourteen never reached the running stage: nine ran into the
 model's daily free-tier quota, one a per-request rate limit, one a provider
@@ -651,9 +652,10 @@ one deployment, one model family, and one region, with no side-by-side control;
 the pre-automation period is a reference rather than a matched arm, and the crash
 events are correlated, not independent. We have no hand-written wrappers for the
 same sources to measure against, because none were ever built. We score a wrapper as
-recovered once it runs cleanly again, which says nothing about whether the values
-it extracts are right, since the collector inspects each batch's shape and never
-the underlying truth. We could not close this gap from the snapshot: it retains no
+recovered when it returns to a non-error state, which (as the deepest-retry case
+shows) need not mean it ran cleanly and says nothing about whether the values it
+extracts are right, since the collector inspects each batch's shape and never the
+underlying truth. We could not close this gap from the snapshot: it retains no
 copy of the original sources, and the downstream stores are confounded by resource
 deletion, regeneration, and merge-time deduplication, so an extracted value cannot
 be checked against ground truth. A best-effort look at the healed wrappers' final
@@ -681,8 +683,10 @@ is argued from its design, not demonstrated.
 
 We operated LLM-generated extraction wrappers as live infrastructure for
 \deploymentDays{} days: \nWrappers{} wrappers, \nDataPoints{} points, and of the
-\nRetried{} that crashed, all but one returned to a crash-free state in at most
-three unattended repairs at a median \healLatencyMedian{}\,s. The result we stand
+\nRetried{} that crashed, all but one stayed crash-free after at most three
+unattended repairs (a stricter read by final status leaves \nRecovered{} of 43
+non-error and 32 still delivering data), at a median \healLatencyMedian{}\,s that
+holds with the one correlated mass-relaunch set aside. The result we stand
 behind is empirical: in production the failures that bind are environmental, not
 defects in the generated code, and the repair loop governs exactly the code the
 LLM owns. The in/out partition is the framing that organizes that finding, not a

@@ -35,7 +35,7 @@ abstract: >
   numbers exactly one (itself quota-blocked). Second, cheap generation decouples attempt
   from yield: only 284 of 396 wrappers ever produced data, so attempting a feed is nearly
   free but a live indicator is not. Third, crash-triggered LLM repair leans toward masking
-  rather than fixing: three of four repaired cases recover by swallowing errors, and we
+  rather than fixing: three of four case studies recover by swallowing errors, and we
   down-scope "recovery" to restored execution because the snapshot cannot confirm the values
   are right. The autonomic MAPE-K loop and its LLM actuator are an organizing lens, not a
   contribution; the repair mechanism is established LLM program repair. What is new is the
