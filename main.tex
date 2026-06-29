@@ -334,8 +334,9 @@ constraint that every later plan must respect.
 
 \subsection{Self-generation: planning a new artifact}
 \label{sec:gen}
-The model does not write code freely; it works inside a fixed wrapper class
-(Figure~\ref{fig:gen}). Only a few methods are open to it, extraction
+The actuator is Google's Gemini Flash, reached through the \texttt{google-genai}
+SDK and pinned to the floating \texttt{gemini-flash-latest} alias. It does not
+write code freely; it works inside a fixed wrapper class (Figure~\ref{fig:gen}). Only a few methods are open to it, extraction
 (\texttt{fetch\_external\_data}) and, for APIs, a windowed fetch and a polling
 period, while the backfill driver, the message transport, the batching, and the
 run loop are library code the prompt tells it not to touch
@@ -636,8 +637,8 @@ recovered once it runs cleanly again, which says nothing about whether the value
 it extracts are right, since the collector inspects each batch's shape and never
 the underlying truth; and for the healed wrappers the cause is read from the
 repair because the relaunch destroys the trace, so the fault analysis
-characterizes the model's fixes more than independently observed failures. A floating version alias pins the model, so
-its underlying weights may have shifted across the run; the generation latency
+characterizes the model's fixes more than independently observed failures. The floating \texttt{gemini-flash-latest} alias pins the model, so its underlying
+weights may have shifted across the run; the generation latency
 includes queueing and so overstates model time; the memory figure is an idle
 reading; and watermark coverage spans are computable for only the 11 wrappers
 whose low mark was kept. Two systemic risks deserve their own mention and remain
