@@ -100,18 +100,28 @@ self-healing systems, LLM code generation, ETL automation, smart tourism
 \section{Introduction}
 \label{sec:intro}
 
-The indicators a city cares about already exist somewhere, but rarely in a form a
-dashboard can read. Water and air quality, energy use, mobility counts, overnight
-stays, and cultural attendance each come from a different publisher, a statistics
-office, a town hall, an industry body, in whatever encoding that publisher happens
-to use: a REST endpoint one day, an Excel workbook or a CSV dump the next, each
-with its own column names, date conventions, language, and ways of failing. Making one of these feeds usable has meant writing
-a dedicated extraction wrapper and then nursing it through every upstream change,
-and that recurring per-source cost is the reason mediator-style integration has
-resisted scaling for three
-decades~\cite{wiederhold1992mediators,kushmerick2000wrapper,lerman2003wrapper}.
-An observatory that can only fund a fixed handful of wrappers describes not its
-city but whichever feeds an engineer had time to wire.
+Running a city on evidence means tracking many numbers at once, and those numbers
+neither sit in one place nor arrive in one form. Air and water quality come off
+environmental sensors and monitoring APIs; overnight stays and lodging capacity
+come from tourism boards; energy use, mobility counts, and cultural attendance
+come from utilities, transport operators, and municipal departments. The
+publishers differ and so do the ways in to their data, a REST endpoint here, an
+Excel workbook or a CSV export there, along with the field names, the way dates
+are written, and the language they are written in. None of it stands still,
+either: an indicator earns its place only while it stays current, so every feed
+has to be pulled again and again as new readings land, and every upstream change
+of format or endpoint has to be taken in without breaking the series a city has
+already built up. What an observatory confronts is therefore a standing
+integration problem over many heterogeneous sources, not a task that is finished
+once.
+
+The usual way to take a source in is to write an extraction wrapper for it and
+then keep that wrapper alive as the source shifts underneath. This cost, paid
+once per source to build and then indefinitely to maintain, is why mediator-style
+integration has never reached past a small set of
+feeds~\cite{wiederhold1992mediators,kushmerick2000wrapper,lerman2003wrapper}, and
+it sets the ceiling on coverage: an observatory ends up showing whichever feeds
+someone found time to wire and to nurse, rather than the city.
 
 We call an intake layer \emph{source-agnostic} when onboarding a feed costs no
 bespoke code: a domain user completes a registration form, and the platform
@@ -138,13 +148,8 @@ restart. \emph{Self-healing} (Section~\ref{sec:heal}) is the loop closing on a
 live artifact: a crash is detected, the termination is classified, the model
 re-plans from the captured trace, and the corrected wrapper goes back out.
 
-An earlier paper by the same group examined this platform's crash-triggered
-repair in isolation~\cite{anonprior}.\footnote{Cited anonymously; identifying
-details are withheld for double-blind review. We disclose the overlap here and
-to the program committee.} The present work reframes the system as a
-source-agnostic autonomic manager, brings its self-generation and
-self-deployment loops into the same account, and analyzes where the manager's
-authority ends. Three contributions follow. We set out the observatory's
+This paper frames the system as a source-agnostic autonomic manager and measures
+it in production. Three contributions follow. We set out the observatory's
 architecture and its one narrow contract: every source is reduced to a stream of
 normalized $(\textrm{timestamp}, \textrm{value})$ points by a wrapper the
 platform owns end to end. That contract is what makes intake source-agnostic
@@ -152,8 +157,8 @@ platform owns end to end. That contract is what makes intake source-agnostic
 autonomic manager over a shared knowledge base, assign each its MAPE-K role, and
 position it against autonomic computing, LLM-based code generation and repair,
 and wrapper maintenance (Section~\ref{sec:selfstar}; related work in
-Section~\ref{sec:related}). Finally we measure a live \deploymentDays{}-day run
-rather than a benchmark, using a pre-automation reference period and a fault
+Section~\ref{sec:related}). Finally we report from the running deployment over
+\deploymentDays{} days, using a pre-automation reference period and a fault
 analysis that fixes the manager's scope of control
 (Section~\ref{sec:results}).\coderepo
 
