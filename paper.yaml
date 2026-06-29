@@ -1,5 +1,5 @@
 slug: source-agnostic-observatory
-title: "Format-Adaptive Ingestion to a Fixed Time-Series Contract: Self-Generating, Self-Healing, and Self-Deploying Data Wrappers in a Smart City Observatory"
+title: "Operating LLM-Generated Data Wrappers in Production: A 149-Day Smart-City Intake Study and the Fault Boundary of Automatic Repair"
 # Authors are anonymized in the manuscript for ICTAI double-blind review; restore for camera-ready.
 authors:
   - Daniel Martins Ferreira
@@ -7,13 +7,13 @@ authors:
   - Henrique Teixeira
   - Osvaldo Pacheco
 keywords:
-  - smart city observatory
+  - production deployment study
+  - LLM-generated data wrappers
+  - LLM code generation and repair
   - format-adaptive data ingestion
+  - smart city observatory
   - autonomic computing
   - self-healing systems
-  - LLM code generation
-  - ETL automation
-  - smart tourism
 target_venue:
   - ICTAI 2026
 lifecycle: Ideation
@@ -23,21 +23,20 @@ build: latexmk
 pdf_file: main.pdf
 pdf_url: https://github.com/dferrero17/source-agnostic-observatory/releases/latest/download/main.pdf
 abstract: >
-  An urban observatory is worth as many indicators as it can take in, and that number is
-  usually small: every feed arrives in its own shape and needs its own extraction code
-  that someone writes and then keeps alive. We describe a smart city observatory in
-  production whose intake layer removes the per-source coding. A non-technical user
-  registers a source and its metadata through a form, and the platform writes, runs, and
-  maintains the extraction code on its own for any source in three supported families
+  We operated LLM-generated extraction wrappers as live infrastructure for a smart city
+  observatory for 149 days, and report what that yields rather than a new mechanism. A
+  non-technical user registers a source and its metadata through a form; the platform then
+  writes, runs, and maintains the extraction code itself for sources in three families
   (REST APIs, spreadsheets, CSV files), each mapped to one normalized (timestamp, value)
-  series. Each source's wrapper is a self-managing component driven by one autonomic
-  (MAPE-K) control loop whose actuator is a large language model: where a classical
-  autonomic manager tunes a fixed component's parameters, this one writes and rewrites the
-  component's code. The wrapper self-generates from metadata and a sample, self-deploys as
-  a supervised checkpointed process, and self-heals from production crash traces. Over 149
-  days the platform stood up 396 wrappers and gathered 164,322 measurements; of the 43
-  (10.9%) that crashed and were auto-repaired, 39 ended in a healthy state and 32 resumed
-  delivering data at a median 33.4 s per repair, and the stack fits in roughly 1.5 GiB.
-  The pattern has a clear, bounded edge: format and code defects lie within the loop's
-  reach, while quota, credential, and misconfiguration faults are environmental and lie
-  beyond it.
+  series. We read each wrapper as a self-managing component through the autonomic MAPE-K
+  lens, with a large language model as the actuator that writes the wrapper's code and
+  rewrites it from the crash trace; the repair loop itself restates established LLM program
+  repair and is not our contribution. Over 149 days the platform stood up 396 wrappers and
+  gathered 164,322 measurements; 284 of 396 ever produced data, so cheap intake widens what
+  can be attempted without by itself yielding live indicators. Of the 43 (10.9%) that
+  crashed, repair restored execution for all but one at a median 33.4 s (unchanged when the
+  one correlated mass-relaunch is set aside); recovery here means a clean re-run, not
+  validated values. Our contribution is the measured fault boundary: across 69 terminal
+  errors the faults the loop governs coincide with the code the LLM owns, and the in-scope
+  faults it left unrepaired number exactly one (itself quota-blocked), while quota,
+  credential, and configuration faults lie outside it.
