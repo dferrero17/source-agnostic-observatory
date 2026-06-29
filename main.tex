@@ -69,10 +69,10 @@ a monitor re-invokes the model with the production crash trace and redeploys a
 repaired wrapper. We cast the three loops in MAPE-K terms over one shared
 knowledge base and report a \deploymentDays{}-day deployment: \nWrappers{}
 wrappers across API, XLSX, and CSV sources ingested \nDataPoints{} data points;
-\nRetried{} (\pctRetried\%) crashed and were repaired automatically, with the
-crash recurring for only one of them thereafter, at a median of
-\healLatencyMedian{}\,s per repair; and the platform runs in about 1.5\,GiB of
-memory. We read the result as a scope of control: source heterogeneity and code
+\nRetried{} (\pctRetried\%) crashed and were repaired automatically, after which
+\nRecovered{} of the 43 ended outside an error state and 32 delivered data again,
+at a median of \healLatencyMedian{}\,s per repair, and the platform runs in about
+1.5\,GiB of memory. We read the result as a scope of control: source heterogeneity and code
 defects fall inside the manager's authority, while quota, credential, and
 misconfiguration faults are environmental and fall outside it.
 \end{abstract}
@@ -128,9 +128,9 @@ makes it work: any source is reduced to a stream of normalized
 $(\textrm{timestamp}, \textrm{value})$ points by a generated wrapper that the
 platform owns end to end (Section~\ref{sec:arch}).
 Second, we unify the three self-* properties as one autonomic manager over a
-shared knowledge base, separating their MAPE-K roles and relating each to prior
-work in autonomic computing, LLM code generation and repair, and wrapper
-maintenance (Section~\ref{sec:selfstar}).
+shared knowledge base and separate their MAPE-K roles (Section~\ref{sec:selfstar}),
+relating each to prior work in autonomic computing, LLM code generation and
+repair, and wrapper maintenance (Section~\ref{sec:related}).
 Third, we report measurements from a real \deploymentDays{}-day deployment
 rather than a benchmark, including a pre-repair baseline (Section~\ref{sec:res-heal})
 and a fault analysis that draws the manager's scope of control precisely
@@ -464,12 +464,14 @@ deepest-retry case as a win. Repairs were quick and hands-off: a median
 landed 16.8\,s into a run, inside the fetch-and-parse phase, and none struck while
 a poller sat idle.
 
-The window also supplies an unplanned control. No repair loop ran for the first
-65 days (it enters the logs on 2026-03-19), and 36 crashes of this exit class over
-that span were left to die, which we treat as the pre-automation baseline. Two
+The window also supplies a pre-automation reference period. No repair loop ran
+for the first 65 days (it enters the logs on 2026-03-19), and 36 crashes of this
+exit class over that span were left to die; we read this descriptively, since the
+pre-loop period differs in source mix and load and is not a matched control. Two
 timeline effects temper the healing counts. Thirty-one of the 50 repair events
 fall on one day, when a credential fix triggered a redeploy that relaunched every
-wrapper at once, so the events are not independent. And because each relaunch
+wrapper at once, so the events are not independent and the pooled latencies above
+reflect that batch more than 50 separate failures. And because each relaunch
 overwrites the stderr file, a triggering traceback survives only when the final
 run also crashed; for wrappers that recovered we read the cause from the fixes
 left in their code instead. Those fixes are diagnostic: a comment or guard naming
@@ -497,10 +499,10 @@ before applying its own window and absorbs residual 400s instead of crashing.
 Redeployed in 51.3\,s, it was still streaming at the snapshot (395 points).
 
 \subsubsection{Header token inside data rows (XLSX, healed)}
-A cultural-heritage spreadsheet repeated its Portuguese year header
+A cultural-heritage spreadsheet repeated its localized year header
 (\texttt{"Ano"}) inside the data, and the wrapper crashed on
 \texttt{int("Ano")}; the repaired file quotes the exception verbatim, so the
-cause is certain. The repair replaces raw integer casts with coercing conversion
+cause is documented in the repair. The repair replaces raw integer casts with coercing conversion
 and drops non-numeric rows, and three neighbouring wrappers picked up the
 identical fix the same night. Redeployed in 61.6\,s, it completed.
 
@@ -536,18 +538,19 @@ outside the managed element and stay manual.
 Points attenuate predictably along the pipeline: \nDataPoints{} sent by wrappers
 become 148{,}131 raw and 106{,}442 consolidated points in the resource store, and
 100{,}550 points in the indicator store that merge into series totaling 84{,}431
-points. The attrition reflects deleted resources (198 of \nWrappers{}),
-regeneration that clears prior data, points arriving for resources with no linked
+points. The attrition reflects deleted resources (198 of \nWrappers{}, 126 of which left
+their wrapper \texttt{stopped}), regeneration that clears prior data, points
+arriving for resources with no linked
 indicator, and timestamp-level deduplication at merge time. Integrity held where
 it was checked: the data collector logged no schema rejections over 30 days and
 only 18 duplicate-timestamp warnings, which it resolved by averaging; in an
 8.3-hour control-plane window the resource service published 153 messages and the
 indicator service consumed exactly 153, with no loss across the broker; and the
-front-door gateway served 55{,}086 requests over 20 days (about 2{,}747 per day,
-80.3\% returning HTTP~200). Resumption worked in production: a container
+front-door gateway served 55{,}086 requests over about 20 days (roughly 2{,}750
+per day, 80.3\% returning HTTP~200). Resumption worked in production: a container
 recreation a few hours before the snapshot forced all 16 then-running wrappers to
 restart, 15 resuming from their stored watermarks while the one without a
-persisted lower mark replayed its history in full.
+persisted high watermark replayed its history in full.
 
 \section{Discussion}
 \label{sec:discussion}
