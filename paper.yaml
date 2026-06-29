@@ -23,20 +23,20 @@ build: latexmk
 pdf_file: main.pdf
 pdf_url: https://github.com/dferrero17/source-agnostic-observatory/releases/latest/download/main.pdf
 abstract: >
-  We operated LLM-generated extraction wrappers as live infrastructure for a smart city
-  observatory for 149 days, and report what that yields rather than a new mechanism. A
-  non-technical user registers a source and its metadata through a form; the platform then
-  writes, runs, and maintains the extraction code itself for sources in three families
-  (REST APIs, spreadsheets, CSV files), each mapped to one normalized (timestamp, value)
-  series. We read each wrapper as a self-managing component through the autonomic MAPE-K
-  lens, with a large language model as the actuator that writes the wrapper's code and
-  rewrites it from the crash trace; the repair loop itself restates established LLM program
-  repair and is not our contribution. Over 149 days the platform stood up 396 wrappers and
-  gathered 164,322 measurements; 284 of 396 ever produced data, so cheap intake widens what
-  can be attempted without by itself yielding live indicators. Of the 43 (10.9%) that
-  crashed, repair restored execution for all but one at a median 33.4 s (unchanged when the
-  one correlated mass-relaunch is set aside); recovery here means a clean re-run, not
-  validated values. Our contribution is the measured fault boundary: across 69 terminal
-  errors the faults the loop governs coincide with the code the LLM owns, and the in-scope
-  faults it left unrepaired number exactly one (itself quota-blocked), while quota,
-  credential, and configuration faults lie outside it.
+  We describe a smart city observatory whose intake layer is built from LLM-generated data
+  wrappers: a non-technical user registers a source and its metadata through a form, and the
+  platform writes, runs, and maintains the extraction code itself for sources in three
+  families (REST APIs, spreadsheets, CSV files), each mapped to a normalized (timestamp,
+  value) series. We report 149 days of operating this in production, 396 wrappers and
+  164,322 measurements, and three findings that hold across the run. First, the binding
+  failures are not bad generated code but the environment around it: 54 of the 69 terminal
+  errors are idle pollers killed by a watchdog set shorter than their cadence and 14 are
+  model-quota or credential faults, while generated code the repair loop could not fix
+  numbers exactly one (itself quota-blocked). Second, cheap generation decouples attempt
+  from yield: only 284 of 396 wrappers ever produced data, so attempting a feed is nearly
+  free but a live indicator is not. Third, crash-triggered LLM repair leans toward masking
+  rather than fixing: three of four repaired cases recover by swallowing errors, and we
+  down-scope "recovery" to restored execution because the snapshot cannot confirm the values
+  are right. The autonomic MAPE-K loop and its LLM actuator are an organizing lens, not a
+  contribution; the repair mechanism is established LLM program repair. What is new is the
+  production evidence and what it says about where such a system actually breaks.

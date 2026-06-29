@@ -57,7 +57,7 @@ that compute the reported numbers accompany the submission.}}
 \begin{document}
 
 \title{Operating LLM-Generated Data Wrappers in Production:\\
-A 149-Day Smart-City Intake Study and the Fault Boundary of Automatic Repair}
+A 149-Day Field Study of What Breaks in a Smart-City Intake Layer}
 
 % Anonymized for ICTAI double-blind review. Fill in for camera-ready.
 \author{\IEEEauthorblockN{Anonymous Author(s)}}
@@ -65,32 +65,27 @@ A 149-Day Smart-City Intake Study and the Fault Boundary of Automatic Repair}
 \maketitle
 
 \begin{abstract}
-An urban observatory is worth as many indicators as it can actually take in, and
-that number is usually small. Every feed, a statistics-office API here, a town
-spreadsheet there, an occasional CSV, arrives in its own shape and needs its own
-extraction code that somebody writes and then keeps alive. We describe \sys{}, a
-smart city observatory in production whose intake layer removes the per-source
-coding: a non-technical user registers a source and its metadata through a form,
-and the platform writes, runs, and maintains the extraction code itself for
-sources in the three families it supports today, REST APIs, spreadsheets, and
-CSV files, each mapped to one normalized $(\textrm{timestamp}, \textrm{value})$
-series; the setup, credentials, and quota stay manual. We read each wrapper as a
-self-managing component, using the autonomic monitor--analyze--plan--execute
-loop over shared knowledge (MAPE-K) as a lens, with a large language model as the
-actuator that writes the wrapper's code and rewrites it from the crash trace when
-it fails. Our contribution is not that repair loop, which restates established
-LLM program repair, but the production evidence and the fault boundary it reveals.
-Over \deploymentDays{} days the platform stood up \nWrappers{} wrappers and
-gathered \nDataPoints{} measurements; \nNonzeroPointWrappers{} of \nWrappers{}
-ever produced data, so cheap intake widens what can be attempted without by itself
-yielding live indicators. Of the \nRetried{} wrappers (\pctRetried\%) that crashed,
-repair restored execution for all but one, at a median \healLatencyMedian{}\,s
-that holds when the one correlated mass-relaunch is set aside; recovery here means
-a clean re-run, not validated values. The boundary is the finding: across the
-\nErrorW{} terminal errors exactly one was healthy generated code the loop could
-not repair, and that one was blocked by quota, so the faults the loop governs are
-co-extensive with the code it owns, while quota, credential, and configuration
-faults lie outside it.
+\sys{} is a smart city observatory whose intake layer is built from
+LLM-generated data wrappers: a non-technical user registers a source and its
+metadata through a form, and the platform writes, runs, and maintains the
+extraction code itself for sources in three families (REST APIs, spreadsheets,
+CSV files), each mapped to a normalized $(\textrm{timestamp}, \textrm{value})$
+series. We report 149 days of operating this in production, \nWrappers{} wrappers
+and \nDataPoints{} measurements, and three findings that hold across the run.
+First, the binding failures are not bad generated code but the environment around
+it: 54 of the \nErrorW{} terminal errors are idle pollers killed by a watchdog set
+shorter than their cadence and 14 are model-provider faults (quota, rate limit,
+overload, or a service restart mid-generation), while
+generated code that the repair loop could not fix numbers exactly one (itself
+quota-blocked). Second, cheap generation decouples attempt from yield: only
+\nNonzeroPointWrappers{} of \nWrappers{} wrappers ever produced data, so attempting
+a feed is nearly free but a live indicator is not. Third, crash-triggered LLM
+repair leans toward masking rather than fixing: three of four repaired cases
+recover by swallowing errors, and we down-scope ``recovery'' to restored execution
+because the snapshot cannot confirm the values are right. The autonomic MAPE-K
+loop and its LLM actuator are an organizing lens, not a contribution; the repair
+mechanism is established LLM program repair. What is new is the production evidence
+and what it says about where such a system actually breaks.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -158,20 +153,21 @@ re-plans from the captured trace, and the corrected wrapper goes back out.
 We do not claim the repair loop itself as novel; it restates LLM program repair
 (Section~\ref{sec:related}). The autonomic monitor--analyze--plan--execute--knowledge
 (MAPE-K) loop is a \emph{lens} we use to organize the system and, in particular, to
-name the boundary of what the loop can fix; the contributions are empirical.
-First, we set out the observatory's architecture and its one narrow contract:
-every source is reduced to a stream of normalized
-$(\textrm{timestamp}, \textrm{value})$ points by a wrapper the platform owns end
-to end (Section~\ref{sec:arch}). Second, we report a \deploymentDays{}-day
-operating envelope, what the platform generated, deployed, and repaired
-unattended, with the repair outcomes and latency reported against a pre-automation
-reference period and with the one correlated mass-relaunch separated out
-(Sections~\ref{sec:selfstar} and~\ref{sec:res-heal}). Third, and most defensibly,
-we characterize the \emph{fault boundary}: across \nErrorW{} terminal errors the
-faults the loop governs coincide with the code it owns, and the in-scope faults it
-left unrepaired number exactly one (itself quota-blocked), so this is as much a
-finding about the observed fault mix as about the loop's ceiling
-(Section~\ref{sec:res-faults}).\coderepo
+name the boundary of what the loop can fix. The contributions are the architecture
+and its one narrow contract (Section~\ref{sec:arch}) and, mainly, three empirical
+findings from the \deploymentDays{}-day run. First, the \emph{binding failures are
+environmental, not bad code}: of the \nErrorW{} terminal errors, 54 are idle
+pollers killed by a watchdog tighter than their cadence and 14 are model-provider
+faults (quota, rate limit, overload, or a mid-generation service restart), while
+generated code the loop could not repair numbers exactly
+one (Section~\ref{sec:res-faults}). Second, \emph{cheap generation decouples
+attempt from yield}: only \nNonzeroPointWrappers{} of \nWrappers{} wrappers ever
+produced data (Section~\ref{sec:res-gen}). Third, \emph{crash-triggered repair
+leans toward masking}: most case repairs recover by swallowing errors, so restored
+execution is not validated data (Sections~\ref{sec:res-heal}
+and~\ref{sec:res-cases}). We treat the in/out fault partition as a useful framing
+of the first finding, not as a discovery in itself, since the partition is drawn
+by definition.\coderepo
 
 \needlines{6}
 \section{Background and Related Work}
@@ -321,10 +317,9 @@ code, its execution watermarks, its retry counter, and its status. The platform
 turns the MAPE-K loop~\cite{ibm2005blueprint} on that element, watching process
 state, classifying how a process ended, planning a fresh or corrected artifact,
 and carrying the plan out by deploying it, all against a shared store of
-knowledge. We use this loop as an organizing lens, not as a contribution: its
-value here is that it names \emph{which faults the manager has authority over}
-(Section~\ref{sec:scope}), not that the decomposition is itself novel. The three
-self-* loops in Figure~\ref{fig:selfstar} are what it yields. In every one of them
+knowledge. We use this loop only as an organizing lens; its value here is that it
+names \emph{which faults the manager has authority over} (Section~\ref{sec:scope}).
+The three self-* loops in Figure~\ref{fig:selfstar} are what it yields. In every one of them
 the actuator is the same pairing: an LLM that produces and revises code, and a
 process supervisor that puts it into service.
 
@@ -359,7 +354,7 @@ constraint that every later plan must respect.
 \label{sec:gen}
 The actuator is Google's Gemini Flash, reached through the \texttt{google-genai}
 SDK and pinned to the floating \texttt{gemini-flash-latest} alias. It does not
-write code freely; it works inside a fixed wrapper class (Figure~\ref{fig:gen}). Only a few methods are open to it, extraction
+write code freely; it works inside a fixed wrapper class (Figure~\ref{fig:template}). Only a few methods are open to it, extraction
 (\texttt{fetch\_external\_data}) and, for APIs, a windowed fetch and a polling
 period, while the backfill driver, the message transport, the batching, and the
 run loop are library code the prompt tells it not to touch
@@ -378,15 +373,6 @@ gates deployment, parsing the file and looking for placeholders left unfilled;
 a first failure earns one corrective prompt, a second sends the wrapper to
 \texttt{error}. Nothing is executed as a test beforehand, so any runtime fault is
 the healing loop's problem.
-
-\begin{figure}[t]
-\centering
-\resizebox{\columnwidth}{!}{\input{fig_gen}}
-\caption{The generation path. Metadata, a sample, the template, and the rules go
-into the prompt; for an API the model first probes the live endpoint; and the
-result must pass the static check, with a single retry, before it is launched.}
-\label{fig:gen}
-\end{figure}
 
 \begin{figure}[t]
 \begin{lstlisting}[language=Python]
@@ -560,15 +546,43 @@ triggering traceback survives only where the last run also crashed; for the
 wrappers that recovered we infer the trigger from the fixes their code carries,
 which means these counts describe the \emph{repairs} the model made rather than
 independently observed causes. So read, a comment or guard pointing at a mended
-defect shows up in 7 of the 43 crashed wrappers and in none of the 353 that never
-crashed, and a timezone fix in 4 of 43 against 1 of 353.
-Table~\ref{tab:errors} sets the repair-depth breakdown beside the fault analysis.
+defect appears in 7 of the 43 crash wrappers but in zero of the 353 clean ones,
+with timezone fixes splitting 4-of-43 versus 1-of-353. The next subsection turns
+from these repaired crashes to the full population of terminal errors, where the
+more consequential result lies.
+
+\subsection{Faults inside and outside the manager}
+\label{sec:res-faults}
+\input{tab_errors}
+This is the paper's central result. Table~\ref{tab:errors} sorts the \nErrorW{}
+wrappers that ended in \texttt{error} by cause, and few of them indict the
+generated code. Fourteen never reached the running stage: nine ran into the
+model's daily free-tier quota, one a per-request rate limit, one a provider
+overload, and three more were cut off mid-generation when a service restarted.
+Another, larger set of 54 are API pollers the 3600\,s watchdog stopped between
+polling cycles, 53 of them leaving no traceback; here the watchdog is just shorter
+than the source's daily or monthly rhythm, a setting mismatched to the feed rather
+than broken code, and 48 of these had already delivered 52{,}372 points before
+being cut short. One wrapper crashed and could not be mended because the repair
+call itself struck the quota ceiling, and that is the lone error-status case where
+real generated code went unrepaired. The lesson is about the workload, not just
+the loop: in a production indicator platform the failures that bind are
+environmental, not defects in the generated extraction code. The split also makes
+the scope of control of Section~\ref{sec:scope} concrete: code defects and
+formatting quirks come off the operator's plate, while spent quota, bad
+credentials, and limits set for the wrong cadence stay outside the managed element
+and stay manual. Those environmental faults are the residual per-source human
+surface: the polling period and watchdog follow the declared periodicity, the
+quota the chosen model plan, the credentials the registration form. The manager
+removes the per-source \emph{code}, not every per-source decision.
 
 \subsection{Repair case studies}
 \label{sec:res-cases}
-Four wrappers span the range. The causes in the first two are read off the fix,
-the third has its exception quoted in the repaired file, and the fourth kept its
-trace because it never recovered.
+Four wrappers put faces on that partition; the causes in the first two are read
+off the fix, the third has its exception quoted in the repaired file, and the
+fourth kept its trace because it never recovered. They also expose the masking
+risk: three of the four ``heal'' by absorbing an error rather than extracting the
+intended data.
 
 \subsubsection{Aware-versus-naive datetime comparison (API, healed)}
 A yearly urban-waste API wrapper fell over 82\,s into its backfill while matching
@@ -594,42 +608,19 @@ same change turns up in three neighbouring wrappers mended the same night. Back
 after 61.6\,s, it finished.
 
 \subsubsection{A missing second column (CSV, not healed)}
-A search-interest export came through as one column, leaving no
-$(\textrm{time},\textrm{value})$ pair to find. Three repairs (27.0, 33.0, and
-51.8\,s) tried delimiter sniffing and bad-line skipping, but none could conjure a
-second column, and the loop stopped. A sibling wrapper reading a two-column
-variant of the very same export healed on its first try. The manager mends code;
-it cannot supply data the source withholds.
-
-\subsection{Faults inside and outside the manager}
-\label{sec:res-faults}
-\input{tab_errors}
-Table~\ref{tab:errors} sorts the \nErrorW{} wrappers that ended in \texttt{error}
-by cause, and few of them indict the generated code. Fourteen never reached the
-running stage: nine ran into the model's daily free-tier quota, one a per-request
-rate limit, one a provider overload, and three more were cut off mid-generation
-when a service restarted. Another, larger set of 54 are API pollers the 3600\,s watchdog stopped
-between polling cycles, 53 of them leaving no traceback; here the watchdog is
-just shorter than the source's daily or monthly rhythm, a setting mismatched to
-the feed rather than broken code, and 48 of these had already delivered
-52{,}372 points before being cut short. One wrapper crashed and could not be
-mended because the repair call itself struck the quota ceiling, and that is the
-lone error-status case where real generated code went unrepaired. The split is
-the scope of control of Section~\ref{sec:scope} made concrete: code defects and
-formatting quirks come off the operator's plate, while spent quota, bad
-credentials, and limits set for the wrong cadence stay outside the managed
-element and stay manual. These faults are also the residual
-per-source human surface: the polling period and watchdog follow the declared
-periodicity, the quota the chosen model plan, the credentials the registration
-form. The manager removes the per-source \emph{code}, not every per-source
-decision.
+The canonical out-of-scope case: a search-interest export came through as one
+column, leaving no $(\textrm{time},\textrm{value})$ pair to find. Three repairs
+(27.0, 33.0, and 51.8\,s) tried delimiter sniffing and bad-line skipping, but none
+could conjure a second column, and the loop stopped. A sibling wrapper reading a
+two-column variant of the very same export healed on its first try. The manager
+mends code; it cannot supply data the source withholds.
 
 \subsection{Pipeline integrity and throughput}
 \label{sec:res-pipeline}
-Point counts thin out down the pipeline in a way that reconciles: the
-\nDataPoints{} wrappers emit become 148{,}131 raw and then 106{,}442 consolidated
-points in the resource store, and 100{,}550 points in the indicator store that
-collapse, after chronological merging, into series of 84{,}431. The losses trace
+Point counts thin out down the pipeline: of the \nDataPoints{} points the wrappers
+emit, 148{,}131 reach the resource store as raw segments and 106{,}442 survive
+consolidation there, 100{,}550 land in the indicator store, and chronological
+merging leaves series of 84{,}431. The losses trace
 to deleted resources (198 of \nWrappers{}, 126 of which left their wrapper
 \texttt{stopped}), to regeneration wiping earlier data, to points landing for
 resources with no indicator attached, and to timestamp-level deduplication at
@@ -691,12 +682,12 @@ is argued from its design, not demonstrated.
 We operated LLM-generated extraction wrappers as live infrastructure for
 \deploymentDays{} days: \nWrappers{} wrappers, \nDataPoints{} points, and of the
 \nRetried{} that crashed, all but one returned to a crash-free state in at most
-three unattended repairs at a median \healLatencyMedian{}\,s. The measured fault
-boundary is the result we stand behind: the faults the repair loop governs
-coincide with the code the LLM owns, while quota, credential, and configuration
-faults sit outside it. The autonomic MAPE-K reading is the lens that names that
-boundary, not a new mechanism; the repair loop is established LLM program repair.
-What the loop could not absorb was environmental, which sets the agenda: checking
+three unattended repairs at a median \healLatencyMedian{}\,s. The result we stand
+behind is empirical: in production the failures that bind are environmental, not
+defects in the generated code, and the repair loop governs exactly the code the
+LLM owns. The in/out partition is the framing that organizes that finding, not a
+discovery in itself. What the loop could not absorb was environmental, which sets
+the agenda: checking
 extracted values for meaning, and folding quota and credential faults into the
 manager as state it owns rather than leaving them on an operator's desk.
 
