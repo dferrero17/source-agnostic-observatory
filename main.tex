@@ -236,8 +236,23 @@ normalized schema.
 data-collector, resource, and indicator (all Python and FastAPI), reached through
 an nginx gateway and fronted by a React dashboard. Control traffic and data
 traffic ride separate RabbitMQ brokers, and the resource and indicator services
-each keep their own MongoDB store. The pipeline appears in
-Figure~\ref{fig:arch}.
+each keep their own datastore, with an optional Keycloak provider for single
+sign-on. Figure~\ref{fig:sysarch} lays out these components and the two planes
+that join them: a REST serving plane through the gateway, and an asynchronous
+ingestion plane across the brokers. Figure~\ref{fig:arch} then traces the data
+path through them.
+
+\begin{figure*}[t]
+\centering
+\resizebox{\textwidth}{!}{\input{fig_sysarch}}
+\caption{Whole-system architecture. The React front end reaches the
+Python/FastAPI services through the nginx gateway (the REST serving plane);
+ingestion runs asynchronously across two RabbitMQ brokers, a data plane and a
+control plane, with wrapper processes that the resource service spawns and
+repairs pulling from the external sources. Each service keeps its own datastore,
+and an optional Keycloak provider handles single sign-on.}
+\label{fig:sysarch}
+\end{figure*}
 
 \begin{figure}[t]
 \centering
