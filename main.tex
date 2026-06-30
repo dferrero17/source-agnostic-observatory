@@ -66,26 +66,28 @@ A 149-Day Field Study of What Breaks in a Smart-City Intake Layer}
 \maketitle
 
 \begin{abstract}
-\sys{} is a smart city observatory whose intake layer is built from
+\Sys{} is a smart-city observatory whose intake layer is built from
 LLM-generated data wrappers: a non-technical user registers a source through a
 form, and the platform writes, runs, and repairs the extraction code itself,
 mapping REST APIs, spreadsheets, and CSV files to a normalized
 $(\textrm{timestamp}, \textrm{value})$ series. We report 149 days in production,
-\nWrappers{} wrappers and \nDataPoints{} measurements. The binding failures turn
+\nWrappers{} wrappers and \nDataPoints{} measurements. The binding faults turn
 out to be environmental, not bad code: almost all \nErrorW{} terminal errors are
-watchdog kills of idle pollers or model-provider faults, while generated code the
-repair loop could not fix numbers exactly one. Cheap generation also decouples
-attempt from yield, only \nNonzeroPointWrappers{} of \nWrappers{} wrappers ever
-produced data, and crash-triggered repair can mask faults as easily as fix them,
-so we down-scope ``recovery'' to restored execution. The autonomic MAPE-K loop and
-its LLM actuator are an organizing lens; the repair mechanism is established LLM
-program repair. What is new is the production evidence of where such a system
-actually breaks, and what that implies for running a civic observatory.
+watchdog kills of long-cadence pollers or operational faults (spent quota,
+provider overload, a mid-generation restart), and the one error-status wrapper
+whose generated code went unrepaired had its repair blocked by that same quota.
+Cheap generation also decouples attempt from yield, only
+\nNonzeroPointWrappers{} of \nWrappers{} wrappers ever produced data, most of the
+silent remainder deleted or never run rather than failed extractions; and
+crash-triggered repair can mask faults as easily as fix them, so we down-scope
+``recovery'' to restored execution. The MAPE-K loop and its LLM actuator are an
+organizing lens and the repair mechanism is established program repair; what is
+new is production evidence of where such a system breaks in a civic observatory.
 \end{abstract}
 
 \begin{IEEEkeywords}
 production deployment study, LLM-generated data wrappers, LLM code generation and
-repair, format-adaptive data ingestion, smart city observatory, autonomic
+repair, format-adaptive data ingestion, smart-city observatory, autonomic
 computing, self-healing systems
 \end{IEEEkeywords}
 
@@ -93,19 +95,15 @@ computing, self-healing systems
 \label{sec:intro}
 
 Running a city on evidence means tracking many numbers at once, and those numbers
-neither sit in one place nor arrive in one form. Air and water quality come off
-environmental sensors and monitoring APIs; overnight stays and lodging capacity
-come from tourism boards; energy use, mobility counts, and cultural attendance
-come from utilities, transport operators, and municipal departments. The
-publishers differ and so do the ways in to their data, a REST endpoint here, an
-Excel workbook or a CSV export there, along with the field names, the way dates
-are written, and the language they are written in. None of it stands still,
-either: an indicator earns its place only while it stays current, so every feed
-has to be pulled again and again as new readings land, and every upstream change
-of format or endpoint has to be taken in without breaking the series a city has
-already built up. What an observatory confronts is therefore a standing
-integration problem over many heterogeneous sources, not a task that is finished
-once.
+neither sit in one place nor arrive in one form. Environmental readings come off
+sensor APIs, tourism figures from boards, energy and mobility counts from
+utilities and transport operators, each with its own way in, a REST endpoint here,
+an Excel or CSV export there, and its own field names, date formats, and language.
+None of it stands still: an indicator earns its place only while it stays current,
+so every feed must be pulled again and again, and every upstream change of format
+or endpoint absorbed without breaking the series already built. What an
+observatory confronts is a standing integration problem over many heterogeneous
+sources, not a task finished once.
 
 The usual way to take a source in is to write an extraction wrapper for it and
 then keep that wrapper alive as the source shifts underneath. This cost, paid
@@ -123,7 +121,7 @@ adapts to a source's format and transport within the structured tabular family,
 REST/JSON APIs, spreadsheets, and delimited files, all projected onto one
 univariate $(\textrm{timestamp}, \textrm{value})$ series. It is not adaptivity to
 data modality or schema. This paper reports \sys{} (anonymized for review), a
-smart city observatory running for a European region, where format-adaptive
+smart-city observatory running for a European region, where format-adaptive
 intake is obtained by making each wrapper an \emph{autonomic} element in the
 sense of Kephart and Chess~\cite{kephart2003vision}: a component that manages
 itself through a closed loop over its own lifecycle. The actuator here is a large
@@ -145,30 +143,30 @@ restart. \emph{Self-healing} (Section~\ref{sec:heal}) is the loop closing on a
 live artifact: a crash is detected, the termination is classified, the model
 re-plans from the captured trace, and the corrected wrapper goes back out.
 
-We do not claim the repair loop itself as novel; it restates LLM program repair
-(Section~\ref{sec:related}). The autonomic monitor--analyze--plan--execute--knowledge
-(MAPE-K) loop is a \emph{lens} we use to organize the system and, in particular, to
-name the boundary of what the loop can fix. The contributions are the architecture
+The MAPE-K loop is a \emph{lens} we use to organize the system and to name the
+boundary of what the loop can fix; it is not a novelty claim. The contributions
+are the architecture
 and its one narrow contract (Section~\ref{sec:arch}) and, mainly, three empirical
-findings from the \deploymentDays{}-day run. First, the \emph{binding failures are
+findings from the \deploymentDays{}-day run. First, the \emph{binding faults are
 environmental, not bad code}: almost all \nErrorW{} terminal errors are watchdog
-kills of idle pollers or model-provider faults, while generated code the loop
-could not repair numbers exactly one (Section~\ref{sec:res-faults}). Second,
-\emph{cheap generation decouples attempt from yield}: only
-\nNonzeroPointWrappers{} of \nWrappers{} wrappers ever produced data, shifting the
-bottleneck from authoring to triage of the silent tail
+kills of long-cadence pollers or operational faults (spent quota, provider
+overload, a mid-generation restart), and the only error-status wrapper whose
+generated code went unrepaired was itself blocked by a spent quota
+(Section~\ref{sec:res-faults}). Second, \emph{cheap generation decouples attempt
+from yield}: only \nNonzeroPointWrappers{} of \nWrappers{} wrappers ever produced
+data, shifting the bottleneck from authoring to triage of the silent tail
 (Section~\ref{sec:res-gen}). Third, \emph{crash-triggered repair can mask faults
-rather than fix them}: case repairs often recover by swallowing errors, so
-restored execution is not validated data (Sections~\ref{sec:res-heal}
-and~\ref{sec:res-cases}). We treat the in/out fault partition as a useful framing
-of the first finding, not as a discovery in itself, since the partition is drawn
-by definition.\coderepo
+rather than fix them}: a case repair can recover by swallowing an upstream error
+instead of extracting the intended data, so restored execution is not validated
+data (Sections~\ref{sec:res-heal} and~\ref{sec:res-cases}). We treat the in/out
+fault partition as a useful framing of the first finding, not as a discovery in
+itself, since the partition is drawn by definition.\coderepo
 
 \needlines{6}
 \section{Background and Related Work}
 \label{sec:related}
 
-\subsection{Smart city and tourism observatories}
+\subsection{Smart-city and tourism observatories}
 The smart-tourism literature has long argued for destination-scale data
 infrastructure~\cite{gretzel2015smart,buhalis2013smart} and has codified the
 indicators worth tracking through schemes such as ETIS~\cite{ec2016etis}, while
@@ -191,7 +189,7 @@ Autonomic computing proposed self-managing components with closed control loops
 as the response to operational complexity~\cite{kephart2003vision}, structured
 as a monitor--analyze--plan--execute cycle around a shared knowledge base
 (MAPE-K)~\cite{ibm2005blueprint}, and later surveys catalogue its self-* property
-families~\cite{huebscher2008autonomic}. \sys{} applies that blueprint to data
+families~\cite{huebscher2008autonomic}. \Sys{} applies that blueprint to data
 wrappers, but swaps the actuator: instead of tuning a fixed component's
 parameters, the actuator is an LLM that regenerates the component's source code,
 the move a recent roadmap on generative AI for self-adaptive systems
@@ -238,7 +236,7 @@ meanwhile, have mostly been designed by hand rather than
 generated~\cite{vassiliadis2002conceptual,vassiliadis2009survey}, with automation
 reaching adjacent pieces such as schema matching~\cite{rahm2001survey},
 large-scale curation~\cite{stonebraker2013tamer}, and
-wrangling~\cite{furche2016wrangling}. \sys{} folds both the initial derivation and
+wrangling~\cite{furche2016wrangling}. \Sys{} folds both the initial derivation and
 the later re-derivation into LLM code generation, which reaches past
 template-structured pages to the REST APIs, spreadsheets, and delimited files an
 observatory ingests, and it targets exactly the slice an indicator platform needs:
@@ -268,11 +266,13 @@ points.
 \centering
 \resizebox{\columnwidth}{!}{\input{fig_sysarch}}
 \caption{Whole-system architecture. The React front end reaches the
-Python/FastAPI services through the nginx gateway (the REST serving plane);
-ingestion runs asynchronously across two RabbitMQ brokers, a data plane and a
-control plane, with wrapper processes that the resource service spawns and
-repairs pulling from the external sources. Each service keeps its own datastore,
-and an optional Keycloak provider handles single sign-on.}
+Python/FastAPI services through the nginx gateway (the REST serving plane, thin
+grey arrows); ingestion runs asynchronously across two RabbitMQ brokers, a data
+plane and a control plane (solid black arrows); and wrapper processes that the
+resource service spawns and repairs read the external sources (dashed arrows).
+Each service keeps its own datastore (MongoDB, with Redis at the
+indicator service and data collector), and an optional Keycloak provider handles
+single sign-on.}
 \label{fig:sysarch}
 \end{figure}
 
@@ -294,16 +294,6 @@ contract before the indicator service stores, merges, and serves the series.
 Source type is one argument to a single generation routine, not a code path of its
 own, so the same routine handles all three formats.
 
-% TODO: a production screenshot of the source-registration wizard makes the
-% "domain user, no code" claim concrete. Export and place in figures/screenshots/.
-% \begin{figure}[t]
-%   \centering
-%   \includegraphics[width=\columnwidth]{figures/screenshots/add-indicator.png}
-%   \caption{Source registration in production: a domain user supplies bilingual
-%   indicator metadata; no source-specific code is written by hand.}
-%   \label{fig:wizard}
-% \end{figure}
-
 \section{Self-* Wrappers as an Autonomic Manager}
 \label{sec:selfstar}
 
@@ -322,9 +312,11 @@ process supervisor that puts it into service.
 \begin{figure}[t]
 \centering
 \resizebox{0.92\columnwidth}{!}{\input{fig_selfstar}}
-\caption{One manager, three loops. Each acts on the same wrapper artifact; the
-actuator is an LLM that writes and revises code together with a supervisor that
-runs the result.}
+\caption{One manager over one wrapper artifact, with the three self-* behaviours
+arranged clockwise around it. Self-generation writes the artifact,
+self-deployment runs and resumes it, and self-healing
+rewrites it after a crash for redeployment; the actuator throughout is an LLM
+paired with a process supervisor.}
 \label{fig:selfstar}
 \end{figure}
 
@@ -350,21 +342,19 @@ constraint that every later plan must respect.
 \label{sec:gen}
 The actuator is Google's Gemini Flash, reached through the \texttt{google-genai}
 SDK at its default decoding settings (no temperature or top-$p$ tuning) and pinned
-to the floating \texttt{gemini-flash-latest} alias. It does not
-write code freely; it works inside a fixed wrapper class (Figure~\ref{fig:template}). Only a few methods are open to it, extraction
+to the floating \texttt{gemini-flash-latest} alias. It does not write code freely
+but fills a fixed wrapper class (Figure~\ref{fig:template}): only extraction
 (\texttt{fetch\_external\_data}) and, for APIs, a windowed fetch and a polling
-period, while the backfill driver, the message transport, the batching, and the
-run loop are library code the prompt tells it not to touch
-(Figure~\ref{fig:template}). Jinja2 assembles the prompt. Into it go the
-indicator metadata, the source configuration, and a brief sample of the data:
-the opening 20 lines of a CSV, 15 rows from each workbook sheet alongside the
-sheet names, or a captured API reply. Alongside the sample sit the required
-\texttt{\{x,y\}} output shape, the template, instructions specific to the source
-type, and the rule list. When the source is an API, the same call hands the model a sandboxed
-\texttt{fetch\_url} tool that hands back the first 2500 characters of a live
-reply; it may call the tool as many as fifteen times to learn the response's
-nesting, its field names, and which date filters the endpoint honours, rather than inferring
-them from the URL. Request authentication is built into the headers by the
+period are open to it, while the backfill driver, transport, batching, and run
+loop are library code the prompt tells it not to touch. Jinja2 assembles the
+prompt from the indicator metadata, the source configuration, and a brief data
+sample, the opening 20 lines of a CSV, 15 rows per workbook sheet with the sheet
+names, or a captured API reply, alongside the required \texttt{\{x,y\}} output
+shape, the template, source-type instructions, and the rule list. For an API, the
+same call gives the model a sandboxed \texttt{fetch\_url} tool returning the first
+2500 characters of a live reply, which it may call up to fifteen times to learn
+the response's nesting, field names, and date filters rather than guess them from
+the URL. Request authentication is built into the headers by the
 service from the declared scheme, so the model never handles it. A static check
 gates deployment, parsing the file and looking for placeholders left unfilled;
 a first failure earns one corrective prompt, a second sends the wrapper to
@@ -458,22 +448,11 @@ The figures here come from a \deploymentDays{}-day run (\deploymentStart{} to
 \deploymentEnd{}) captured as one complete state snapshot: the wrapper collection
 (\nWrappers{} documents, generated code and execution logs included), the
 per-wrapper logs, the resource and indicator stores, the service logs, and
-container statistics; every number below is computed from that snapshot by an
-analysis script we will release with the camera-ready. At the snapshot the
-deployment spanned 17 containers and about
+container statistics; every number below is computed from that snapshot. At the
+snapshot the deployment spanned 17 containers and about
 2{,}082\,MiB of resident memory while idle, dropping to roughly 1.5\,GiB once the
 optional single-sign-on container is set aside; the resource service, host to
 every wrapper process, was the heaviest at 682\,MiB.
-
-% TODO: production-environment screenshot (admin dashboard) as a live snapshot of
-% scale and source heterogeneity. Export to figures/screenshots/admin-dashboard.png.
-% \begin{figure}[t]
-%   \centering
-%   \includegraphics[width=\columnwidth]{figures/screenshots/admin-dashboard.png}
-%   \caption{Production environment: the live catalog spans three domains, with
-%   indicators split across API and uploaded-file sources.}
-%   \label{fig:dashboard}
-% \end{figure}
 
 \subsection{Generation and coverage}
 \label{sec:res-gen}
@@ -505,8 +484,8 @@ status machine with production counts in Figure~\ref{fig:lifecycle}.
 \resizebox{\columnwidth}{!}{\input{fig_lifecycle}}
 \caption{Status machine, annotated with production counts ($n=\nWrappers{}$). The
 crash-and-repair branch touched \nRetried{} wrappers across \nHealEvents{}
-redeployments; most \texttt{error} outcomes are watchdog kills of idle API
-pollers rather than faulty code (Section~\ref{sec:res-faults}).}
+redeployments; most \texttt{error} outcomes are watchdog kills of long-cadence
+API pollers rather than faulty code (Section~\ref{sec:res-faults}).}
 \label{fig:lifecycle}
 \end{figure}
 
@@ -520,11 +499,12 @@ repair depth was \retryOnce{} at a single attempt, \retryTwice{} at two, and
 agree, so we keep them apart. Measured by recurrence, the same crash came back
 after the last repair for exactly one of the 43, so 42 stayed crash-free.
 Measured by final status, \nRecovered{} of 43 (\pctRecovered\%) closed in a
-non-error state. Measured by output, 32 resumed sending data after their last
-repair, 20{,}351 points, about an eighth of everything collected. The one wrapper
-that burned all three attempts never stabilised; it shows a non-error status only
-because its resource was deleted afterwards, and we do not score the deepest-retry
-case as a win. The repairs themselves were fast and untouched by a person: a
+non-error state; that reading is by final status alone, so it still counts the one
+wrapper that burned all three attempts and never stabilised, which shows a
+non-error status only because its resource was deleted afterwards and which we do
+not score as a win. Measured by output, 32 resumed sending data after their last
+repair, 20{,}351 points, about an eighth of everything collected, though a single
+test feed accounts for 17{,}466 of them. The repairs themselves were fast and untouched by a person: a
 median \healLatencyMedian{}\,s from crash to redeployment (quartiles 24.2 and
 50.8\,s, 90th percentile \healLatencyPninety{}\,s, longest \healLatencyMax{}\,s
 over the \nHealEvents{} events), up to 30\,s of which is the detection cycle. The
@@ -538,13 +518,13 @@ the comparison descriptively, since the early period differs in source mix and
 load and is not a matched control. Two features of the timeline qualify the
 healing counts. Thirty-one of the 50 repair events land on a single day, when a
 credential fix set off a redeploy that restarted every wrapper together, so the
-events are correlated rather than 50 independent failures. The latency is robust
-to this. The headline 33.4\,s is over all 50 repair events; restricted to each
+events are correlated rather than 50 independent failures. The latency is
+unaffected. The headline 33.4\,s is over all 50 repair events; restricted to each
 wrapper's first repair, the 17 that first crashed on other days have a median
 34.0\,s (range 15.5--80.4) against 33.2\,s for the 26-wrapper batch, so the figure
-is not an artifact of the mass relaunch. The recovery counts are similarly robust:
-15 of those 17 independent crashes ended in a non-error state, matching the pooled
-\nRecovered{} of 43. Because each relaunch overwrites stderr, a triggering trace
+is not an artifact of the mass relaunch. The recovery counts hold the same way:
+15 of those 17 independent crashes ended in a non-error state, an 88\% rate in
+line with the pooled \nRecovered{} of 43 (\pctRecovered\%). Because each relaunch overwrites stderr, a triggering trace
 survives only where the last run also crashed; for recovered wrappers we read the
 cause from the fixes their code carries, so these counts describe the model's
 \emph{repairs}, not independently observed causes (a defect-referencing comment or
@@ -566,7 +546,7 @@ than broken code, and 48 of these had already delivered 52{,}372 points before
 being cut short. One wrapper crashed and could not be mended because the repair
 call itself struck the quota ceiling, and that is the lone error-status case where
 real generated code went unrepaired. The lesson is about the workload, not just
-the loop: in a production indicator platform the failures that bind are
+the loop: in a production indicator platform the faults that bind are
 environmental, not defects in the generated code. The specific 3600\,s watchdog
 and free-tier quota are this deployment's instantiation; what we expect to
 transfer is the category, that once generation is cheap, code defects grow rare
@@ -574,16 +554,15 @@ relative to the operational envelope (quota, credentials, cadence-to-timeout
 matching). The split also makes
 the scope of control of Section~\ref{sec:scope} concrete: code defects and
 formatting quirks come off the operator's plate, while spent quota, bad
-credentials, and limits set for the wrong cadence stay outside the managed element
-and stay manual. Those environmental faults are the residual per-source human
-surface: the polling period and watchdog follow the declared periodicity, the
-quota the chosen model plan, the credentials the registration form. The manager
-removes the per-source \emph{code}, not every per-source decision.
+credentials, and cadence-mismatched limits stay outside the managed element and
+stay manual. The manager removes the per-source \emph{code}, not every per-source
+decision.
 
 \subsection{Repair case studies}
 \label{sec:res-cases}
-Four wrappers put faces on the partition, and three of the four ``heal'' by
-absorbing an error rather than extracting the intended data. A yearly urban-waste
+Four wrappers put faces on the partition. Two of the four ``heal'' by
+absorbing an upstream error rather than extracting the intended data, a third
+makes a benign clean, and the last is out of scope. A yearly urban-waste
 API wrapper crashed 82\,s into its backfill on a timezone-aware-versus-naive
 comparison; the repair normalizes both bounds and downgrades an empty fetch to a
 log line (back in 34.7\,s, 596 points). An air-quality wrapper whose configured
@@ -612,8 +591,7 @@ merge time. Where we could check integrity, it held: across 30 days the collecto
 rejected nothing on schema grounds and raised only 18 duplicate-timestamp
 warnings, each settled by averaging; over an 8.3-hour control-plane window the
 resource service emitted 153 messages and the indicator service took in exactly
-153, none lost in the broker; and the gateway handled 55{,}086 requests in about
-20 days (near 2{,}750 a day, 80.3\% of them HTTP~200). Resumption proved itself in
+153, none lost in the broker. Resumption proved itself in
 the field: a container rebuild a few hours before the snapshot sent all 16
 running wrappers through a restart, 15 of them continuing from stored watermarks
 while the one missing a high watermark re-read its history from scratch.
@@ -633,14 +611,13 @@ not there.
 For a city scaling an indicator observatory the three findings carry into
 operations. Since the binding faults are environmental, coverage grows by
 governing quotas, credentials, and polling cadences rather than by chasing a
-better code generator, which closes the loop back to the intake-cost premise of
-Section~\ref{sec:related}: cheap generation moves the bottleneck off authoring and
+better code generator: cheap generation moves the bottleneck off authoring and
 onto operations. Since attempting a feed is nearly free, an observatory can take
-on the long tail of municipal and sector feeds it once skipped, across its
-environment, economy, and sociocultural domains. And since repair can mask data
-loss, a dashboard may show a healthy wrapper that has quietly stopped delivering,
-a real trust hazard when the series inform evidence-based policy, so value-level
-monitoring becomes a first-class need rather than an afterthought.
+on the long tail of feeds it once skipped across all its domains. And since repair
+can mask data loss, a dashboard may show a healthy wrapper that has silently
+stopped delivering, a real trust hazard when the series inform evidence-based
+policy, so value-level monitoring becomes a first-class need rather than an
+afterthought.
 
 The evidence has limits worth stating plainly. It is observational, drawn from
 one deployment, one model family, and one region, with no side-by-side control;
@@ -654,12 +631,13 @@ underlying truth. We could not close this gap from the snapshot: it retains no
 copy of the original sources, and the downstream stores are confounded by resource
 deletion, regeneration, and merge-time deduplication, so an extracted value cannot
 be checked against ground truth. A best-effort look at the healed wrappers' final
-stored series is consistent with this caution rather than reassuring against it,
-many are sparse or single-valued, and three of the four case-study repairs work by
-\emph{swallowing} errors (downgrading an empty fetch to a log line, absorbing a
-residual HTTP~400, dropping non-numeric rows), which is exactly the move that can
-mask data loss behind a clean exit. We therefore down-scope ``self-healing'' to
-restored \emph{execution} and treat value-correctness as open. Relatedly, for the
+stored series is consistent with this caution rather than reassuring against it:
+many are sparse or single-valued, and two of the four case-study repairs work by
+\emph{swallowing} an upstream error (downgrading an empty fetch to a log line,
+absorbing a residual HTTP~400), which is exactly the move that can mask data loss
+behind a clean exit; a third drops non-numeric rows to clear a repeated header, a
+benign clean here but the same blunt operation. We therefore down-scope
+``self-healing'' to restored \emph{execution} and treat value-correctness as open. Relatedly, for the
 healed wrappers the cause is read from the repair because the relaunch destroys the
 trace, so the fault analysis characterizes the model's fixes more than
 independently observed failures. The model is pinned only through the floating
@@ -672,8 +650,10 @@ tool-assisted probing, the template constraint, and whole-file repair, so their
 value is argued from design rather than measured; and because the source mix is
 user-selected and the fourteen hard rules accreted over the run, the low rate of
 code defects is partly co-produced by that human curation, a maturation effect we
-cannot separate out. Whether the pattern carries beyond 396 wrappers and one
-region is argued from its design, not demonstrated.
+cannot separate out. The four repair case studies are illustrative, chosen to
+exercise the scope boundary rather than sampled at random, so they bound where
+masking can occur, not how often. Whether the pattern carries beyond 396 wrappers
+and one region is argued from its design, not demonstrated.
 
 A production smart-city platform also raises governance questions we touch only
 briefly. The indicators are aggregate public statistics with no personal or
@@ -695,7 +675,7 @@ We operated LLM-generated extraction wrappers as live infrastructure for
 unattended repairs (a stricter read by final status leaves \nRecovered{} of 43
 non-error and 32 still delivering data), at a median \healLatencyMedian{}\,s that
 holds with the one correlated mass-relaunch set aside. The result we stand
-behind is empirical: in production the failures that bind are environmental, not
+behind is empirical: in production the faults that bind are environmental, not
 defects in the generated code, and the repair loop governs exactly the code the
 LLM owns. The in/out partition is the framing that organizes that finding, not a
 discovery in itself. What the loop could not absorb was environmental, which sets

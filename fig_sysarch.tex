@@ -1,58 +1,63 @@
-% Whole-system component / deployment architecture. Two planes: a REST serving
-% plane through the gateway, and an asynchronous ingestion plane across two brokers.
+% Whole-system architecture, column-shaped (portrait) so it stays legible at
+% one IEEE column. Two planes are told apart by line style:
+%   thin grey   = REST serving plane (gateway fronts every service)
+%   solid black = asynchronous data/control flow across the two brokers
+%   dashed      = process spawn/repair and source reads
 \begin{tikzpicture}[
-  font=\footnotesize,
-  svc/.style={draw, rounded corners=1.5pt, align=center, minimum height=26pt,
-              minimum width=66pt, inner sep=3pt, fill=gray!8},
-  bus/.style={draw, align=center, minimum height=22pt, minimum width=96pt,
-              inner sep=3pt, fill=gray!20},
-  cli/.style={draw, rounded corners=1.5pt, align=center, minimum height=20pt,
+  font=\scriptsize,
+  svc/.style={draw, rounded corners=1.5pt, align=center, minimum height=17pt,
+              minimum width=44pt, inner sep=2pt, fill=gray!8},
+  cli/.style={draw, rounded corners=1.5pt, align=center, minimum height=15pt,
               inner sep=3pt, fill=gray!3},
+  bus/.style={draw, align=center, minimum height=15pt, minimum width=54pt,
+              inner sep=2pt, fill=gray!20},
   ext/.style={draw, dashed, align=center, inner sep=3pt, fill=white},
-  opt/.style={draw, dashed, rounded corners=1.5pt, align=center, inner sep=3pt,
+  opt/.style={draw, dashed, rounded corners=1.5pt, align=center, inner sep=2pt,
               fill=white},
   rest/.style={-{Stealth[length=4pt]}, semithick, gray!55},
   flow/.style={-{Stealth[length=5pt]}, thick},
   dep/.style={-{Stealth[length=5pt]}, thick, dashed},
-  bi/.style={{Stealth[length=4pt]}-{Stealth[length=4pt]}, semithick}]
+  bi/.style={{Stealth[length=4pt]}-{Stealth[length=4pt]}, semithick},
+  lbl/.style={font=\scriptsize, fill=white, inner sep=1pt}]
 
-% clients, gateway, optional SSO
-\node[cli] (ui) at (0,6.9) {React UI: dashboard + source-registration wizard};
-\node[svc, minimum width=96pt] (gw) at (0,5.3) {nginx API gateway};
-\node[opt] (kc) at (6.6,5.3) {Keycloak\\SSO (optional)};
+% --- clients and gateway (top) ---
+\node[cli] (ui) at (0.1,7.5) {React UI: dashboard + source-registration wizard};
+\node[svc, minimum width=70pt] (gw) at (-1.3,6.3) {nginx API gateway};
+\node[opt] (kc) at (2.4,6.3) {Keycloak\\(optional)};
 
-% microservice row (Python / FastAPI), datastore noted inline
-\node[svc] (us) at (-7.3,3.4) {user\\service\\[-1pt]\scriptsize(MongoDB)};
-\node[svc] (kb) at (-3.65,3.4) {knowledge\\base\\[-1pt]\scriptsize(MongoDB)};
-\node[svc] (rs) at (0,3.4) {resource service\\generation + repair\\[-1pt]\scriptsize(MongoDB)};
-\node[svc] (is) at (3.65,3.4) {indicator\\service\\[-1pt]\scriptsize(MongoDB, Redis)};
-\node[svc] (dc) at (7.3,3.4) {data\\collector\\[-1pt]\scriptsize(Redis)};
+% --- microservices (Python/FastAPI): serving-only on top, ingestion below ---
+\node[svc] (us) at (-2.0,5.0) {user};
+\node[svc] (kb) at (0.3,5.0) {knowledge\\base};
+\node[svc] (rs) at (-2.4,3.7) {resource\\gen + repair};
+\node[svc] (is) at (-0.1,3.7) {indicator};
+\node[svc] (dc) at (2.3,3.7) {data\\collector};
+% dotted backdrop marking the service mesh (drawn behind the labels above)
+\draw[rounded corners=3pt, dotted, gray!70] (-3.35,3.05) rectangle (3.35,5.62);
 
-% message bus: two RabbitMQ brokers
-\node[bus] (smq) at (1.3,1.5) {services-mq\\[-1pt]\scriptsize control plane};
-\node[bus] (dmq) at (6.6,1.5) {data-mq\\[-1pt]\scriptsize data plane};
+% --- two brokers ---
+\node[bus] (smq) at (-1.1,2.0) {services-mq\\control plane};
+\node[bus] (dmq) at (2.3,2.0) {data-mq\\data plane};
 
-% ingestion workers and the external sources they read
-\node[svc, minimum width=84pt] (wr) at (6.6,-0.3) {wrapper processes};
-\node[ext] (src) at (0.6,-0.3) {external sources\\[-1pt]\scriptsize API / CSV / XLSX};
+% --- ingestion workers and the sources they read ---
+\node[svc, minimum width=62pt] (wr) at (2.3,0.7) {wrapper processes};
+\node[ext] (src) at (2.3,-0.6) {external sources\\API / CSV / XLSX};
 
-% --- REST serving plane (gateway fans out to every service) ---
-\draw[bi] (ui) -- (gw);
-\draw[rest] (gw) -- (us);
-\draw[rest] (gw) -- (kb);
-\draw[rest] (gw) -- (rs);
-\draw[rest] (gw) -- (is);
-\draw[rest] (gw) -- (dc);
-\draw[rest, dashed] (gw) -- node[above, font=\scriptsize]{OIDC} (kc);
+% REST serving plane: the gateway fronts the whole mesh
+\draw[bi, gray!55] (ui) -- (gw);
+\draw[rest, dashed] (gw) -- node[lbl,above]{OIDC} (kc);
+\draw[rest] (gw.south) to[out=-90,in=150] node[lbl,left,pos=.55]{REST} (-2.0,5.42);
 
-% --- asynchronous ingestion plane ---
-\draw[dep] (rs.south) to[out=-90,in=160]
-  node[above right, font=\scriptsize, pos=0.62]{spawn, repair} (wr.west);
-\draw[flow, dashed] (src) -- node[below, font=\scriptsize]{extract} (wr);
-\draw[flow] (wr) -- node[right, font=\scriptsize]{points} (dmq);
-\draw[flow] (dmq) -- node[right, font=\scriptsize, pos=0.45]{validate} (dc);
-\draw[flow] (dc.south) to[out=-160,in=-20]
-  node[below, font=\scriptsize, pos=0.5]{validated} (smq.east);
-\draw[bi] (smq) -- node[left, font=\scriptsize, pos=0.45]{id map} (rs);
-\draw[flow] (smq) -- node[right, font=\scriptsize, pos=0.6]{store, merge} (is);
+% --- data plane: a clean vertical column on the right ---
+\draw[flow,dashed] (src) -- node[lbl,right]{extract} (wr);
+\draw[flow] (wr) -- node[lbl,right]{points} (dmq);
+\draw[flow] (dmq) -- node[lbl,right]{validate} (dc);
+
+% --- control plane: services-mq is the hub for resource, indicator, collector ---
+\draw[bi]   (rs.south) to[out=-80,in=160] node[lbl,above,pos=.55]{id map} (smq.west);
+\draw[flow] (smq.north) to[out=80,in=-100] node[lbl,left,pos=.5]{store, merge} (is.south);
+\draw[flow] (dc.west) to[out=180,in=20] node[lbl,above,pos=.6]{validated} (smq.east);
+
+% --- resource service spawns and repairs the wrapper processes ---
+\draw[dep] (rs.south) to[out=-90,in=180,looseness=1.2]
+  node[lbl,below,pos=.75]{spawn, repair} (wr.west);
 \end{tikzpicture}

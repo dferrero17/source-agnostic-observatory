@@ -3,8 +3,10 @@
 \centering
 \caption{Per-source-type outcomes over the \deploymentDays{}-day run.
 \emph{Recovered} counts wrappers that went through the repair loop and closed in a
-\emph{non-error final status} (\nRecovered{} of 43); this is a stricter measure
-than the 42 of 43 whose crash simply never recurred (Table~\ref{tab:errors}).
+\emph{non-error final status} (\nRecovered{} of 43, one of them the
+retries-exhausted wrapper that reached non-error only through later resource
+deletion); this is a stricter measure than the 42 of 43 whose crash simply never
+recurred (Table~\ref{tab:errors}).
 One set of loops handles every source type.}
 \label{tab:status}
 \begin{tabular}{@{}lrrrrr@{}}
