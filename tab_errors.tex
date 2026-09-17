@@ -11,8 +11,7 @@ repair loop fared over the 43 crashed wrappers and their 50 automatic repairs.}
 \midrule
 Stage & Root cause & $n$ \\
 \midrule
-Generation & Model daily free-tier quota (HTTP 429) & 9 \\
-Generation & Model per-request rate limit (HTTP 429) & 1 \\
+Generation & Model free-tier request quota (HTTP 429) & 10 \\
 Generation & Model provider overloaded (HTTP 503) & 1 \\
 Generation & Service restart during generation & 3 \\
 Runtime & Execution watchdog (3600\,s), API pollers\textsuperscript{a} & 54 \\

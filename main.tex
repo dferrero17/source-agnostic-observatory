@@ -67,10 +67,12 @@ restart), and one crashed wrapper went unrepaired because the repair call itself
 the quota. Cheap generation decouples attempt from yield: only
 \nNonzeroPointWrappers{} of \nWrappers{} wrappers ever produced data. Crash-triggered
 repair restored execution for 42 of 43 crashed wrappers and resumed output for 32,
-over a median post-repair exposure of \expMedianDays{} days, but two of four
-inspected repairs recovered by swallowing an upstream error, so we score recovery as
-resumed output and treat value correctness as open. We add a bounded estimate of
-generation cost and a live re-extraction check on \spotN{} public sources. The
+and the repaired code then ran 1{,}584 times over 309 wrapper-days without a
+recurrence, but two of four inspected repairs recovered by swallowing an upstream
+error, so we score recovery as resumed output and treat value correctness as open. A
+live re-extraction of eight public sources matched 84 of 95 stored values exactly,
+the rest being upstream revisions, and a bounded cost estimate shows model cost was
+never the constraint. The
 repair loop is established program repair and MAPE-K is only our lens; the
 contribution is production evidence of where such a system breaks and what an
 operator must still own.
@@ -150,7 +152,6 @@ uptake~\cite{modica2018assessment}, dashboards assembled from warehouses and
 surveys~\cite{fuchs2014big}, and getting the data in at all as the binding constraint
 on sustained monitoring~\cite{ivarsbaidal2021measuring,ivarsbaidal2023sustainable}.
 These accounts say little about how intake is built; we report one, from production.
-The deployment is a tourism observatory, but nothing in the design ties it to tourism.
 
 Autonomic computing proposed self-managing components with closed control loops
 as the response to operational complexity~\cite{kephart2003vision}, structured as
@@ -321,9 +322,8 @@ The figures come from a \deploymentDays{}-day run (\deploymentStart{} to
 (\nWrappers{} documents with generated code and execution logs), the per-wrapper
 logs, the resource and indicator stores, the service logs, and container statistics.
 Every number below is computed from that snapshot by the released script. At the
-snapshot the deployment spanned 17 containers and about 2{,}082\,MiB of resident
-memory while idle; the resource service, host to every wrapper process, was the
-heaviest at 682\,MiB.
+snapshot the deployment spanned 17 containers and about 2\,GiB of idle resident
+memory, 682\,MiB of it in the resource service that hosts every wrapper process.
 
 \subsection{Generation and yield}
 \label{sec:res-gen}
@@ -383,14 +383,18 @@ fetch-and-parse stage.
 A wrapper observed only briefly after its repair has had little chance to fail again,
 so recurrence and resumed output are only as strong as the exposure behind them. We
 therefore measured, for each repaired wrapper, the time from its last repair to its
-last evidence of life (last log entry or emitted point, or the snapshot for wrappers
-still executing): the median is \expMedianDays{} days (quartiles \expQone{} and
-\expQthree{}, range \expMinDays{}--\expMaxDays{}), \expUnderDay{} wrappers had under a
-day of exposure and \expOverWeek{} more than a week, and the 42 crash-free wrappers
-accumulate \expWrapperDays{} wrapper-days without a recurrence. Wrappers whose
-resource was deleted soon after repair are counted at their deletion, which is why
-the short-exposure group exists; their ``recovery'' is unverified rather than
-confirmed.
+last evidence of life (last log entry, emitted point, or stored segment; the snapshot
+for the three still executing). The 29 repaired file wrappers run once and exit, so
+their exposure is short by construction (median \expFileMedianDays{} days, and that
+only because a platform relaunch re-ran completed spreadsheet wrappers); for them the
+meaningful measure is re-execution, and across the 42 crash-free wrappers the repaired
+code was started \expRelaunches{} times by platform relaunches without a crash. The
+14 repaired API pollers keep running and were observed for a median
+\expApiMedianDays{} days after repair (quartiles \expApiQone{} and \expApiQthree{},
+maximum \expMaxDays{}); in all, the crash-free wrappers accumulate
+\expWrapperDays{} wrapper-days of post-repair observation. Nineteen of the 43 later had
+their resource deleted, eight of them as the event that ended observation, so for
+those the recovery is unverified rather than confirmed.
 
 Two features of the timeline qualify the counts further. For the first 65 days no
 repair loop was active (it first appears in the logs on 2026-03-19), and over that
@@ -413,9 +417,8 @@ cause from the fixes their code carries, so these counts describe the model's
 This is the paper's central result: the binding faults are operational, not
 generated-code defects. Table~\ref{tab:errors} sorts the \nErrorW{} wrappers that
 ended in \texttt{error} by cause, and few of them indict the generated code. Fourteen
-never reached the running stage: nine ran into the model's daily free-tier quota, one
-a per-request rate limit, one a provider overload, and three were cut off
-mid-generation when a service restarted. The larger set of 54 are API pollers the
+never reached the running stage: ten ran into the model's free-tier request quota, one
+a provider overload, and three were cut off mid-generation when a service restarted. The larger set of 54 are API pollers the
 3600\,s watchdog stopped between polling cycles, 53 of them leaving no traceback. We
 are explicit about what this is: a platform setting of our own, an execution timeout
 shorter than the feeds' daily or monthly rhythm, so these are configuration faults
@@ -453,31 +456,42 @@ exit; the manager mends code, and it cannot supply data the source withholds.
 
 \subsection{Cost, and a live check on values}
 \label{sec:res-cost}
-The platform logged no token counts, so generation cost is an estimate we label as
-such. From the prompt-assembly templates and the stored wrappers we measured the
-fixed prompt (template, rules, instructions), the variable sample, and the generated
-code, converting characters to tokens at four per token, and priced them at the
-published Gemini Flash rates on \costPriceDate{} (\costInPrice{} and \costOutPrice{}
-USD per million input and output tokens); tool replies during API probing are bounded
-above by fifteen calls of 2500 characters. A generation costs about
-\costGenMedianUSD{} USD at the median and a repair about \costRepairMedianUSD{} USD,
-so the \nWrappers{} generations and \nHealEvents{} repairs together cost on the order
-of \costTotalUSD{} USD in model calls. No hand-written wrapper was ever built for the
-same sources, so the saving over manual authoring is plausible but unmeasured; what
-the estimate does establish is that model cost is not the binding constraint, and
-that the free-tier quota, which caused 11 terminal errors, bit long before cost did.
+The platform logged no token counts, and the deployment ran on the provider's free
+tier, so its model spend was zero and the binding limit was a daily request quota
+rather than money. What the run would have cost at paid rates is an estimate we label
+as such. From the prompt-assembly templates at the deployed commit and the 331
+wrappers with stored code we measured the fixed prompt (\costFixedApiTok{} tokens for
+an API source, about 3{,}200--3{,}300 for files, at four characters per token), the
+variable sample and metadata, and the generated code (median \costCodeTok{} output
+tokens), and priced them at the rates published on \costPriceDate{} for the model the
+alias resolved to (\costInPrice{} and \costOutPrice{} USD per million input and output
+tokens). A generation then costs about \costGenMedianUSD{} USD at the median and a
+repair, which carries the crashed source and its trace, about \costRepairMedianUSD{}
+USD; the \nWrappers{} generation attempts and \nHealEvents{} repairs together fall
+between \costTotalLowUSD{} USD with no tool calls and \costTotalHighUSD{} USD if every
+API wrapper spent its full budget of probing calls, about three times that at the
+successor model's rates, plus whatever unlogged reasoning tokens added. No
+hand-written wrapper was ever built for the same sources, so the saving over manual
+authoring is plausible but unmeasured; what the estimate does establish is that model
+cost was never the constraint, while the free-tier quota caused 11 terminal errors.
 
 The collector checks each batch's shape, not whether the values match the source,
 and the snapshot retains no copy of the sources, so value correctness could not be
 verified from the dump. As a bounded substitute we took the stored code of
-\spotN{} API wrappers whose endpoints are public and need no credential, re-ran only
-their extraction logic against the live source at the time of writing, and compared
-the fresh $(\textrm{timestamp},\textrm{value})$ pairs with the dumped points over the
-overlapping range: \spotReachable{} sources were still reachable, yielding
-\spotOverlap{} overlapping timestamps of which \spotMatch{} matched exactly and
-\spotMismatch{} did not. This is a small, convenience-sampled check on the sources
-that happen to be public and stable; it is the first ground-truth evidence for the
-deployment and no more than that.
+\spotN{} API wrappers whose endpoints are public and need no credential (seven from
+the national statistics office, one weather feed; six of the eight had been
+repaired), re-ran only their extraction logic against the live source three months
+after the snapshot with at most three requests each, and compared the fresh
+$(\textrm{timestamp},\textrm{value})$ pairs with the dumped points over the
+overlapping range. All \spotReachable{} sources were still reachable; six wrappers
+yielded \spotOverlap{} overlapping timestamps, of which \spotMatch{} matched exactly
+and \spotMismatch{} differed, every difference an upstream revision of a published
+statistic (one annual value revised by 0.2\%, ten monthly values revised down by
+0.25--1.9\%), so none is an extraction error. Four wrappers matched on every
+overlapping point; two were inconclusive (a deleted resource with no stored
+segments, and a request budget spent outside the stored range). This is a small,
+convenience-sampled check on the sources that happen to be public and stable; it is
+the first ground-truth evidence for the deployment and no more than that.
 
 \subsection{Pipeline integrity}
 \label{sec:res-pipeline}
@@ -490,10 +504,9 @@ with no indicator attached, and to timestamp-level deduplication at merge time.
 Where we could check integrity, it held: across 30 days the collector rejected
 nothing on schema grounds and raised only 18 duplicate-timestamp warnings; over an
 8.3-hour control-plane window the resource service emitted 153 messages and the
-indicator service took in exactly 153. Resumption proved itself in the field: a
-container rebuild a few hours before the snapshot sent all 16 running wrappers
-through a restart, 15 of them continuing from stored watermarks while the one missing
-a high watermark re-read its history from scratch.
+indicator service took in exactly 153. A container rebuild hours before the
+snapshot restarted all 16 running wrappers; 15 resumed from their watermarks and the
+one without a high mark re-read its history.
 
 \section{Discussion and Threats to Validity}
 \label{sec:discussion}
@@ -513,14 +526,15 @@ value-level monitoring is a first-class need, not an afterthought.
 The evidence is observational, from one deployment, one model family, and one
 region, with no side-by-side control; the pre-automation period is a reference
 rather than a matched arm, the crash events are correlated, and no hand-written
-wrappers exist for the same sources. The cost figure is an estimate, not a
-measurement. We score recovery as resumed output, and the exposure analysis shows
+wrappers exist for the same sources. We score recovery as resumed output, and the exposure analysis shows
 how much observation backs that score, but the collector inspects shape and never
 truth; the live check covers only the public, stable sources. For repaired wrappers
 the cause is read from the fix because the relaunch destroys the trace, so the fault
 analysis characterizes the model's repairs more than independently observed
-failures. The model is pinned only through a floating alias, so the exact numbers may
-reflect weight changes mid-run and are not reproducible against a fixed model. We do
+failures. The model is pinned only through a floating alias, and the stored provider
+messages show it resolving to one model until 2026-05-20 and to its successor by
+2026-05-27, so the numbers pool two models and are not reproducible against a fixed
+one. We do
 not ablate tool-assisted probing, the template constraint, or whole-file repair, so
 their value is argued from design; and because the source mix is user-selected and
 the fourteen rules accreted over the run, the low rate of code defects is partly
@@ -545,7 +559,7 @@ the code the model owns. What it could not absorb sets the agenda: checking extr
 values for meaning, and folding cadence, quota, and credential faults into the
 manager as state it owns rather than leaving them on an operator's desk.
 
-\balance
+% \balance left out: with the references spilling to a second page it strands one entry on a third.
 \bibliographystyle{IEEEtran}
 \bibliography{refs}
 
