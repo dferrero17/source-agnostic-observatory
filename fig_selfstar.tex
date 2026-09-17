@@ -1,32 +1,33 @@
-% The autonomic wrapper manager: three self-* loops over one generated artifact.
+% The autonomic wrapper manager: one artifact, three self-* behaviours.
 % MAPE-K framing (Monitor-Analyze-Plan-Execute over shared Knowledge).
+% Read clockwise: generate -> deploy -> (crash) -> heal -> rewrite -> deploy ...
 \begin{tikzpicture}[
   font=\scriptsize,
   stage/.style={draw, rounded corners=1pt, align=center, minimum height=16pt,
-                inner sep=3pt, fill=gray!8},
-  art/.style={draw, align=center, minimum height=16pt, inner sep=3pt,
+                inner sep=4pt, fill=gray!8},
+  art/.style={draw, align=center, minimum height=16pt, inner sep=4pt,
               fill=gray!20},
   loop/.style={-{Stealth[length=4pt]}, thick},
-  node distance=16pt and 22pt]
+  lbl/.style={font=\scriptsize, fill=white, inner sep=1.2pt}]
 
-% the shared artifact at the centre of all three loops
-\node[art] (wrapper) {wrapper artifact\\(generated code +\\watermarks + status)};
+% shared artifact at the centre of all three behaviours
+\node[art] (wrapper) at (0,0)
+  {wrapper artifact\\(code + watermarks\\+ status)};
 
-% self-generating (left)
-\node[stage, left=34pt of wrapper, align=center] (gen)
-  {\textbf{self-generating}\\metadata + sample\\$\rightarrow$ template fill\\(LLM, tool-probed)};
-% self-deploying (top)
-\node[stage, above=20pt of wrapper, align=center] (dep)
-  {\textbf{self-deploying}\\spawn, supervise,\\checkpoint-resume};
-% self-healing (right)
-\node[stage, right=34pt of wrapper, align=center] (heal)
+% self-generation (left), self-deployment (top), self-healing (right)
+\node[stage] (gen) at (-3.2,0)
+  {\textbf{self-generation}\\metadata + sample\\$\rightarrow$ template fill\\(LLM, tool-probed)};
+\node[stage] (dep) at (0,2.5)
+  {\textbf{self-deployment}\\spawn, supervise,\\checkpoint-resume};
+\node[stage] (heal) at (3.2,0)
   {\textbf{self-healing}\\crash + trace\\$\rightarrow$ LLM repair\\($\le 3$ attempts)};
 
-\draw[loop] (gen.east) -- (wrapper.west);
-\draw[loop] (wrapper.north) -- (dep.south);
-\draw[loop] (dep.east) to[out=0, in=90] (heal.north);
-\draw[loop] (heal.south) to[out=-90, in=0] (wrapper.east);
-\draw[loop] (wrapper.east) to[out=20, in=200] node[below, pos=.5]{} (heal.west);
-\draw[loop, dashed] (heal.west) to[out=160, in=20]
-  node[above, pos=.5]{redeploy} (dep.east);
+% one clockwise lifecycle, one arrow per relationship, no crossings
+\draw[loop] (gen) -- node[lbl,above]{writes} (wrapper);
+\draw[loop] (wrapper) -- node[lbl,right]{deploy} (dep);
+\draw[loop] (dep.east) to[out=0,in=90] node[lbl,above right]{on crash} (heal.north);
+\draw[loop] (heal) -- node[lbl,above]{rewrite} (wrapper);
+% self-deployment's own restart loop
+\draw[loop] (dep.north west) to[out=120,in=60,looseness=5]
+  node[lbl,above]{resume} (dep.north east);
 \end{tikzpicture}

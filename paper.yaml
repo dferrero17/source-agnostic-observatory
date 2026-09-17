@@ -1,5 +1,5 @@
 slug: source-agnostic-observatory
-title: "A Source-Agnostic AI-Powered Smart City Observatory: Self-Generating, Self-Healing, and Self-Deploying Data Wrappers in Production"
+title: "Operating LLM-Generated Data Wrappers in Production: A 149-Day Field Study of What Breaks in a Smart-City Intake Layer"
 # Authors are anonymized in the manuscript for ICTAI double-blind review; restore for camera-ready.
 authors:
   - Daniel Martins Ferreira
@@ -7,13 +7,13 @@ authors:
   - Henrique Teixeira
   - Osvaldo Pacheco
 keywords:
-  - smart city observatory
-  - source-agnostic data ingestion
+  - production deployment study
+  - LLM-generated data wrappers
+  - LLM code generation and repair
+  - format-adaptive data ingestion
+  - smart-city observatory
   - autonomic computing
   - self-healing systems
-  - LLM code generation
-  - ETL automation
-  - smart tourism
 target_venue:
   - ICTAI 2026
 lifecycle: Ideation
@@ -23,21 +23,17 @@ build: latexmk
 pdf_file: main.pdf
 pdf_url: https://github.com/dferrero17/source-agnostic-observatory/releases/latest/download/main.pdf
 abstract: >
-  A smart city observatory is only as useful as the breadth of sources it can ingest,
-  yet most indicator platforms hard-wire a handful of feeds and pay an engineer to
-  maintain a wrapper for each. We present a production smart city observatory whose
-  ingestion layer is source-agnostic: any REST API, spreadsheet, or CSV export becomes
-  a normalized indicator time series with no source-specific code written by a human.
-  Each source is handled by a data wrapper treated as an autonomic artifact with three
-  properties. It is self-generating: a large language model fills a fixed extraction
-  template from source metadata and a data sample, probing live endpoints before
-  committing to extraction logic. It is self-healing: a monitor re-invokes the model
-  with the crash traceback and repairs the wrapper in place. And it is self-deploying:
-  wrappers are launched, supervised, checkpointed, and relaunched as isolated processes
-  with no operator in the loop. We frame the three properties as a single autonomic
-  manager over the generated artifact and report a 149-day production deployment: 396
-  wrappers across API, XLSX, and CSV sources ingested 164,322 data points; 43 wrappers
-  (10.9%) crashed and entered the repair loop, after which 42 of 43 crashed no further
-  at a median of 33.4 s per repair; and the whole platform runs in roughly 1.5 GiB of
-  memory. The boundary of the approach is sharp: the loops absorb heterogeneity and code
-  defects, while quota, credential, and configuration failures stay outside their reach.
+  A smart-city observatory whose intake layer is built from LLM-generated data wrappers: a
+  non-technical user registers a source through a form, and the platform writes, runs, and
+  repairs the extraction code itself, mapping REST APIs, spreadsheets, and CSV files to a
+  normalized (timestamp, value) series. We report 149 days in production, 396 wrappers and
+  164,322 measurements. The binding faults turn out to be environmental, not bad code: almost
+  all 69 terminal errors are watchdog kills of long-cadence pollers or operational faults
+  (spent quota, provider overload, a mid-generation restart), and the one error-status wrapper
+  whose generated code went unrepaired had its repair blocked by that same quota. Cheap
+  generation also decouples attempt from yield, only 284 of 396 wrappers ever produced data,
+  most of the silent remainder deleted or never run rather than failed extractions; and
+  crash-triggered repair can mask faults as easily as fix them, so we down-scope "recovery" to
+  restored execution. The MAPE-K loop and its LLM actuator are an organizing lens and the
+  repair mechanism is established program repair; what is new is production evidence of where
+  such a system breaks in a civic observatory.
