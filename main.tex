@@ -515,12 +515,12 @@ dollars would have prevented. (4) Retain stderr and the source sample across
 relaunches: the relaunch overwrote the trace for every repaired wrapper and no copy
 of the source exists, so neither the cause nor the value can be audited afterwards.
 (5) Pin the model version: the alias resolved to two models during the run.
-(7) Guard the supervisor against restart storms: a service boot loop on one afternoon
-respawned 45 pollers 623 times in three hours, killing the children silently each
-time, and no log of it survived.
 (6) Monitor values, not exits: repair can mask data loss behind a clean status, a
 trust hazard when the series inform policy, so the intended data, not the process,
-is what needs a health signal. Beyond these, cheap generation lets an observatory attempt the long tail of feeds it
+is what needs a health signal. (7) Guard the supervisor against restart storms: a service boot loop on one afternoon
+respawned 45 pollers 623 times in three hours, killing the children silently each
+time, and no log of it survived.
+Beyond these, cheap generation lets an observatory attempt the long tail of feeds it
 once skipped, if it budgets for triaging the attempts that never yield.
 
 \subsection{Threats to validity}
