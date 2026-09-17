@@ -15,8 +15,8 @@ keywords:
   - autonomic computing
   - self-healing systems
 target_venue:
-  - ICTAI 2026
-lifecycle: Ideation
+  - PRDC 2026
+lifecycle: Drafting
 repo: dferrero17/source-agnostic-observatory
 root_file: main.tex
 build: latexmk
