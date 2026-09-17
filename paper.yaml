@@ -1,5 +1,5 @@
 slug: source-agnostic-observatory
-title: "Operating LLM-Generated Data Wrappers in Production: A 149-Day Field Study of What Breaks in a Smart-City Intake Layer"
+title: "Operating LLM-Generated Data Wrappers in Production: A 149-Day Case Study of What Breaks in a Smart-City Intake Layer"
 # Authors are anonymized in the manuscript for ICTAI double-blind review; restore for camera-ready.
 authors:
   - Daniel Martins Ferreira
@@ -23,17 +23,20 @@ build: latexmk
 pdf_file: main.pdf
 pdf_url: https://github.com/dferrero17/source-agnostic-observatory/releases/latest/download/main.pdf
 abstract: >
-  A smart-city observatory whose intake layer is built from LLM-generated data wrappers: a
-  non-technical user registers a source through a form, and the platform writes, runs, and
-  repairs the extraction code itself, mapping REST APIs, spreadsheets, and CSV files to a
-  normalized (timestamp, value) series. We report 149 days in production, 396 wrappers and
-  164,322 measurements. The binding faults turn out to be environmental, not bad code: almost
-  all 69 terminal errors are watchdog kills of long-cadence pollers or operational faults
-  (spent quota, provider overload, a mid-generation restart), and the one error-status wrapper
-  whose generated code went unrepaired had its repair blocked by that same quota. Cheap
-  generation also decouples attempt from yield, only 284 of 396 wrappers ever produced data,
-  most of the silent remainder deleted or never run rather than failed extractions; and
-  crash-triggered repair can mask faults as easily as fix them, so we down-scope "recovery" to
-  restored execution. The MAPE-K loop and its LLM actuator are an organizing lens and the
-  repair mechanism is established program repair; what is new is production evidence of where
-  such a system breaks in a civic observatory.
+  A smart-city observatory lives or dies by intake: every indicator needs a wrapper that pulls
+  one series from one heterogeneous source and keeps pulling it as the source drifts. We report
+  a 149-day production case study of an intake layer that removes the per-source code: a
+  non-technical user registers a source through a form and the platform has an LLM write, run,
+  and repair the extraction wrapper, mapping REST APIs, spreadsheets, and CSV files to a
+  normalized (timestamp, value) series. Over 396 wrappers and 164,322 measurements the faults
+  that bound the deployment were operational, not generated-code defects: of 69 terminal
+  errors, 54 were kills by an execution watchdog set shorter than the feeds' polling period,
+  14 were generation-stage faults (quota, provider overload, platform restarts), and one
+  crashed wrapper went unrepaired because the repair call hit the quota. Cheap generation
+  decouples attempt from yield (284 of 396 wrappers ever produced data). Crash-triggered repair
+  reached 43 wrappers, restored execution for 42 and resumed output for 32, over 309
+  wrapper-days and 1,584 relaunches without recurrence, but two of four inspected repairs
+  recovered by swallowing an upstream error, so recovery is scored as resumed output and value
+  correctness treated as open. A live re-extraction of eight public sources matched 84 of 95
+  stored values, the rest upstream revisions, and a bounded estimate shows model cost was never
+  the constraint.

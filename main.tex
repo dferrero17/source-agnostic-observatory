@@ -62,11 +62,11 @@ to a normalized $(\textrm{timestamp}, \textrm{value})$ series. Over \nWrappers{}
 wrappers and \nDataPoints{} measurements the faults that bound the deployment were
 operational, not generated-code defects: of \nErrorW{} terminal errors, 54 were kills
 by an execution watchdog we had set shorter than the feeds' daily or monthly polling
-period, 14 were model-provider faults (spent quota, overload, a mid-generation
-restart), and one crashed wrapper went unrepaired because the repair call itself hit
-the quota. Cheap generation decouples attempt from yield: only
+period, 14 were generation-stage faults (ten a spent model quota, one provider
+overload, three our own service restarting mid-generation), and one crashed wrapper
+went unrepaired because the repair call itself hit the quota. Cheap generation decouples attempt from yield: only
 \nNonzeroPointWrappers{} of \nWrappers{} wrappers ever produced data. Crash-triggered
-repair restored execution for 42 of 43 crashed wrappers and resumed output for 32,
+repair reached 43 crashed wrappers, restored execution for 42 and resumed output for 32,
 and the repaired code then ran 1{,}584 times over 309 wrapper-days without a
 recurrence, but two of four inspected repairs recovered by swallowing an upstream
 error, so we score recovery as resumed output and treat value correctness as open. A
@@ -129,8 +129,8 @@ The contributions are the architecture and its one narrow contract
 (Section~\ref{sec:arch}) and, mainly, the empirical findings from the
 \deploymentDays{}-day run. First, the \emph{binding faults are operational, not
 generated-code defects}: of \nErrorW{} terminal errors, 54 are kills by a watchdog
-we configured shorter than the feeds' polling period, 14 are model-provider faults,
-and the one error-status wrapper whose generated code went unrepaired was blocked by
+we configured shorter than the feeds' polling period, 14 are generation-stage faults
+(quota, provider overload, platform restarts), and the one error-status wrapper whose generated code went unrepaired was blocked by
 a spent quota (Section~\ref{sec:res-faults}). Second, \emph{cheap generation
 decouples attempt from yield}: only \nNonzeroPointWrappers{} of \nWrappers{} wrappers
 ever produced data, shifting the bottleneck from authoring to triage of the silent
@@ -190,10 +190,7 @@ start~\cite{kushmerick2000verification,lerman2003wrapper}. ETL pipelines have mo
 been designed by hand~\cite{vassiliadis2002conceptual,vassiliadis2009survey}, with
 automation reaching schema matching~\cite{rahm2001survey},
 curation~\cite{stonebraker2013tamer}, and wrangling~\cite{furche2016wrangling}.
-Dataspaces~\cite{franklin2005dataspaces}, polystores~\cite{duggan2015bigdawg}, and
-schema-on-read lakes make data source-agnostic for the \emph{consumer}; we work the
-producer side, folding both the initial derivation and the later re-derivation of
-each source's wrapper into LLM code generation.
+Dataspaces~\cite{franklin2005dataspaces}, polystores~\cite{duggan2015bigdawg}, and schema-on-read lakes make data source-agnostic for the \emph{consumer}; we work the producer side.
 
 \section{Architecture and the Fixed Time-Series Contract}
 \label{sec:arch}
@@ -250,8 +247,7 @@ treat date ranges as inclusive, keep timezone handling uniform, read localized m
 names). The rest is per-wrapper and changes at runtime: a pair of watermarks (earliest
 and latest timestamps sent), a retry counter capped at three, a timestamped execution
 log, and the stored wrapper document with its metadata, source configuration, current
-code, and status. The rule list is the part that grows: each diagnosed failure can add
-a constraint every later plan must respect.
+code, and status. 
 
 \subsection{Generation}
 \label{sec:gen}
@@ -282,8 +278,7 @@ watchdog (default 3600\,s). A file wrapper runs once; an API wrapper back-fills
 history in size-adapting batches and then polls at the period its periodicity
 implies, with no external scheduler. A monitor reads process state every 30\,s.
 After a restart a wrapper resumes from its high watermark rather than re-fetching,
-so a relaunch neither duplicates nor skips points, the same check-point-and-resume
-idiom as streaming consumers.
+so a relaunch neither duplicates nor skips points.
 
 \subsection{Repair}
 \label{sec:heal}
@@ -296,11 +291,7 @@ addresses that traceback; for an API wrapper it may re-interrogate the endpoint
 through the same \texttt{fetch\_url} tool, up to ten times. The returned file passes
 the same static check, replaces the old one, bumps the retry counter, and the process
 is relaunched from its watermarks. At most three repairs are granted; the fourth-time
-loser stays in \texttt{error} for a person. Because the trigger is a live exit code
-that may arrive weeks after generation, the feedback carries the source's real
-behaviour rather than a test author's guess, and because the plan re-emits the whole
-wrapper, a repair can re-shape the extraction end to end instead of touching one
-statement~\cite{chen2024selfdebug,olausson2024selfrepair}.
+loser stays in \texttt{error} for a person. Because the trigger is a live exit code that may arrive weeks after generation, the feedback carries the source's real behaviour, and because the plan re-emits the whole wrapper, a repair can re-shape the extraction end to end~\cite{chen2024selfdebug,olausson2024selfrepair}.
 
 \subsection{Scope of control}
 \label{sec:scope}
@@ -321,7 +312,10 @@ The figures come from a \deploymentDays{}-day run (\deploymentStart{} to
 \deploymentEnd{}) captured as one complete state snapshot: the wrapper collection
 (\nWrappers{} documents with generated code and execution logs), the per-wrapper
 logs, the resource and indicator stores, the service logs, and container statistics.
-Every number below is computed from that snapshot by the released script. At the
+Every number below is computed from that snapshot by the released script, except
+the priced cost estimate and the live re-extraction of Section~\ref{sec:res-cost},
+which also draw on the prompt templates, published prices, and the sources as of
+September 2026. At the
 snapshot the deployment spanned 17 containers and about 2\,GiB of idle resident
 memory, 682\,MiB of it in the resource service that hosts every wrapper process.
 
@@ -336,11 +330,8 @@ median wrapper contributed \medianPointsPerWrapper{} points and the 90th percent
 \pNinetyPointsPerWrapper{}, with \nNonzeroPointWrappers{} of \nWrappers{} sending at
 least one. The time from a generation request to the first running process had a
 median of \genLatencyMedian{}\,s and a 90th percentile of \genLatencyPninety{}\,s
-over \nGenLatencySamples{} wrappers, a figure that folds in queueing, sampling, the
-model call, and the static check. Downstream, 118 of the 179 active indicators are
-tied to a source and 111 carry data through the whole pipeline; the busiest live
-series is an hourly air-quality feed at 20{,}069 points, and backfill reaches the year
-2000 for the 11 feeds whose lower watermark was retained. Cheap generation comes with
+over \nGenLatencySamples{} wrappers, queueing and the static check included. Downstream, 118 of the 179 active indicators are
+tied to a source and 111 carry data through the whole pipeline; the busiest series is an hourly air-quality feed at 20{,}069 points. Cheap generation comes with
 a long silent tail: \nZeroPointWrappers{} wrappers delivered no data, 69 with a
 since-deleted resource, 20 that never ran (quota or watchdog), 22 that completed yet
 found nothing usable, and 1 still executing, so scaling coverage shifts the cost from
@@ -363,8 +354,10 @@ pollers rather than faulty code (Section~\ref{sec:res-faults}).}
 \subsection{Repair effectiveness and exposure}
 \label{sec:res-heal}
 \nRetried{} wrappers (\pctRetried\%; 26 spreadsheet, 14 API, 3 CSV) threw an
-uncaught exception while running and were taken up by the repair loop, which shipped
-\nHealEvents{} redeployments; per wrapper the repair depth was \retryOnce{} at one
+uncaught exception while running and received at least one repair, \nHealEvents{}
+redeployments in all; a 44th crashed wrapper never received one because the repair
+call itself hit the model quota (Section~\ref{sec:res-faults}), and is counted there
+rather than here. per wrapper the repair depth was \retryOnce{} at one
 attempt, \retryTwice{} at two, and \retryThrice{} at three. ``Recovery'' can be read
 three ways that do not agree, so we keep them apart and rank them. The weakest
 reading is recurrence: the same crash came back after the last repair for exactly one
@@ -460,7 +453,8 @@ The platform logged no token counts, and the deployment ran on the provider's fr
 tier, so its model spend was zero and the binding limit was a daily request quota
 rather than money. What the run would have cost at paid rates is an estimate we label
 as such. From the prompt-assembly templates at the deployed commit and the 331
-wrappers with stored code we measured the fixed prompt (\costFixedApiTok{} tokens for
+wrappers with stored code (the other 65 never started a process: 14 generation
+errors and 51 whose code was wiped with a deleted resource) we measured the fixed prompt (\costFixedApiTok{} tokens for
 an API source, about 3{,}200--3{,}300 for files, at four characters per token), the
 variable sample and metadata, and the generated code (median \costCodeTok{} output
 tokens), and priced them at the rates published on \costPriceDate{} for the model the
@@ -499,7 +493,8 @@ Point counts thin out down the pipeline: of the \nDataPoints{} points the wrappe
 emit, 148{,}131 reach the resource store as raw segments and 106{,}442 survive
 consolidation, 100{,}550 land in the indicator store, and chronological merging
 leaves series of 84{,}431. The losses trace to deleted resources (198 of
-\nWrappers{}), to regeneration wiping earlier data, to points landing for resources
+\nWrappers{}; deleting a resource after its wrapper reached a terminal state leaves
+that status unchanged, so deletions outnumber the \texttt{stopped} count), to regeneration wiping earlier data, to points landing for resources
 with no indicator attached, and to timestamp-level deduplication at merge time.
 Where we could check integrity, it held: across 30 days the collector rejected
 nothing on schema grounds and raised only 18 duplicate-timestamp warnings; over an
@@ -539,22 +534,18 @@ not ablate tool-assisted probing, the template constraint, or whole-file repair,
 their value is argued from design; and because the source mix is user-selected and
 the fourteen rules accreted over the run, the low rate of code defects is partly
 co-produced by human curation. Whether the pattern carries beyond \nWrappers{}
-wrappers and one region is argued from its design, not demonstrated. Two operational
-risks are real: the model quota is a single point of failure, and model-written code
-runs as live processes contained only by per-process isolation, a semaphore, and the
-watchdog, while the generation prompt ingests a live sample of the source, an
-untrusted-input path we did not harden against prompt injection.
+wrappers and one region is argued from its design, not demonstrated. Two risks remain: the model quota is a single point of failure, and model-written code runs as live processes contained only by process isolation, a semaphore, and the watchdog, while the generation prompt ingests a live source sample we did not harden against prompt injection.
 
 \section{Conclusion}
 \label{sec:conclusion}
 
 We operated LLM-generated extraction wrappers as live infrastructure for
 \deploymentDays{} days: \nWrappers{} wrappers, \nDataPoints{} points, and of the
-\nRetried{} that crashed, all but one stayed crash-free after at most three
-unattended repairs, 32 resumed delivering data, and repair took a median
+\nRetried{} that crashed and were repaired, all but one stayed crash-free after at
+most three unattended repairs, 32 resumed delivering data, and repair took a median
 \healLatencyMedian{}\,s. The result we stand behind is empirical: in production the
-faults that bind are operational, a timeout we set, a quota we exhausted, a provider
-that was down, not defects in the generated code, and the repair loop governs exactly
+faults that bind are operational, a timeout we set, a quota we exhausted, a service
+we restarted, not defects in the generated code, and the repair loop governs exactly
 the code the model owns. What it could not absorb sets the agenda: checking extracted
 values for meaning, and folding cadence, quota, and credential faults into the
 manager as state it owns rather than leaving them on an operator's desk.
