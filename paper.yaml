@@ -1,6 +1,6 @@
 slug: source-agnostic-observatory
 title: "Operating LLM-Generated Data Wrappers in Production: A 149-Day Case Study of What Breaks in a Smart-City Intake Layer"
-# Authors are anonymized in the manuscript for ICTAI double-blind review; restore for camera-ready.
+# Authors are anonymized in the manuscript for PRDC double-blind review; restore for camera-ready.
 authors:
   - Daniel Martins Ferreira
   - Sebastião Teixeira
@@ -28,15 +28,13 @@ abstract: >
   a 149-day production case study of an intake layer that removes the per-source code: a
   non-technical user registers a source through a form and the platform has an LLM write, run,
   and repair the extraction wrapper, mapping REST APIs, spreadsheets, and CSV files to a
-  normalized (timestamp, value) series. Over 396 wrappers and 164,322 measurements the faults
-  that bound the deployment were operational, not generated-code defects: of 69 terminal
-  errors, 54 were kills by an execution watchdog set shorter than the feeds' polling period,
-  14 were generation-stage faults (quota, provider overload, platform restarts), and one
-  crashed wrapper went unrepaired because the repair call hit the quota. Cheap generation
-  decouples attempt from yield (284 of 396 wrappers ever produced data). Crash-triggered repair
-  reached 43 wrappers, restored execution for 42 and resumed output for 32, over 309
-  wrapper-days and 1,584 relaunches without recurrence, but two of four inspected repairs
-  recovered by swallowing an upstream error, so recovery is scored as resumed output and value
-  correctness treated as open. A live re-extraction of eight public sources matched 84 of 95
-  stored values, the rest upstream revisions, and a bounded estimate shows model cost was never
-  the constraint.
+  normalized (timestamp, value) series. Over 396 wrappers and 164,322 measurements, code faults
+  were common (one wrapper in seven crashed at some point) but the repair loop absorbed nearly
+  all it reached, and the faults that ended wrappers in a terminal error were operational: of
+  69, 54 were kills by an execution watchdog set shorter than the feeds' polling period, 14
+  failed at generation on quota, overload, or our own restarts, and one crash went unrepaired
+  because the repair call hit the quota. Repair restored execution for 42 of the 43 wrappers it
+  reached and resumed output for 32, but two of four inspected repairs recovered by swallowing
+  an upstream error, so recovery is scored as resumed output and value correctness treated as
+  open; a live re-extraction of eight public sources matched 84 of 95 stored values exactly, the
+  rest upstream revisions. We close with the operational rules the deployment taught us.
