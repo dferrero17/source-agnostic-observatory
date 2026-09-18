@@ -7,13 +7,12 @@ authors:
   - Henrique Teixeira
   - Osvaldo Pacheco
 keywords:
-  - production deployment study
-  - LLM-generated data wrappers
-  - LLM code generation and repair
-  - format-adaptive data ingestion
+  - LLM-generated code
+  - automated program repair
+  - data ingestion
   - smart-city observatory
   - autonomic computing
-  - self-healing systems
+  - field failure study
 target_venue:
   - PRDC 2026
 lifecycle: Drafting
