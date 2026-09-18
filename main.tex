@@ -513,16 +513,14 @@ and on pollers that stop being respawned: 22 wrappers completed with zero points
 from a healthy run. (3) Treat the model quota as a dependency with a budget: it
 stopped 57 wrappers, 14\% of everything registered, for want of a few dollars.
 (4) Retain stderr and the source sample across relaunches: the relaunch overwrote the
-trace for 42 of the 43 repaired wrappers and no copy of the source exists, so neither
-the cause nor the value can be audited afterwards.
+trace for 42 of the 43 repaired wrappers and no source copy exists, so neither cause
+nor value can be audited afterwards.
 (5) Pin the model version: the alias resolved to two models during the run.
-(6) Monitor values, not exits: repair can mask data loss behind a clean status, a
-trust hazard when the series inform policy, so the intended data, not the process,
-is what needs a health signal. (7) Guard the supervisor against restart storms: the boot loop of
+(6) Monitor values, not exits: repair can mask data loss behind a clean status, so
+the intended data, not the process, needs the health signal. (7) Guard the supervisor against restart storms: the boot loop of
 Section~\ref{sec:res-heal} killed its children silently 623 times in an afternoon,
 and only the wrappers' start entries record it.
-Beyond these, cheap generation lets an observatory attempt the long tail of feeds it
-once skipped, if it budgets for triaging the attempts that never yield.
+
 
 \subsection{Threats to validity}
 \emph{Internal.} The evidence is observational, from one deployment with no
@@ -530,10 +528,10 @@ side-by-side control; the pre-automation period is a reference, not a matched ar
 the crash events are correlated, and for repaired wrappers the cause is read from the
 fix because the relaunch destroyed the trace. Root causes were assigned by the authors
 from logs without a second rater.
-\emph{Construct.} Recovery is scored as resumed output, and the exposure analysis
-shows how much observation backs that score; the collector inspects shape and never
-truth, and the re-extraction check covers only public, stable sources, mostly through unrepaired code. The cost figure is a
-counterfactual estimate. \emph{External.} One model family, one region, a user-selected source mix, and a
+\emph{Construct.} Recovery is scored as resumed output, with the exposure analysis
+showing how much observation backs it; the collector inspects shape, never truth; the
+re-extraction check covers only public, stable sources, mostly through unrepaired
+code; the cost figure is a counterfactual estimate. \emph{External.} One model family, one region, a user-selected source mix, and a
 rule list that accreted over the run, so the code-defect rate is partly co-produced by
 human curation; the alias resolved to one model until 2026-05-20 and to its successor
 by 2026-05-27, so the numbers pool two models. We do not ablate probing, the template, or whole-file repair. \emph{Security.} Model-written code runs as live processes contained only by
@@ -548,14 +546,13 @@ the mitigations we would add.
 
 We operated LLM-generated extraction wrappers as live infrastructure for
 \deploymentDays{} days: \nWrappers{} wrappers, \nDataPoints{} points, at least one
-wrapper in seven crashing at some point, and the repair loop stopping the crash in 42
-of the 43 it reached and restoring output in 32, at a median \healLatencyMedian{}\,s.
-The faults that filled the error column were operational, a timeout we set, a quota
-we exhausted, a service we restarted; what stayed unresolved was smaller and harder:
-22 wrappers that exited clean with nothing, 52 pollers orphaned by a status, one crash
-the loop could not mend, and one it never reached. What the
-loop could not absorb sets the agenda: checking extracted values for meaning, and
-folding cadence, quota, and credential faults into the manager as state it owns.
+wrapper in seven crashing, and the repair loop stopping the crash in 42 of the 43 it
+reached and restoring output in 32, at a median \healLatencyMedian{}\,s. The faults
+that filled the error column were operational, a timeout we set, a quota we exhausted,
+a service we restarted; what stayed unresolved was smaller and harder: 22 clean exits
+with nothing, 52 pollers orphaned by a status, one crash the loop could not mend, and
+one it never reached. The agenda follows: check extracted values for meaning, and
+fold cadence, quota, and credential faults into the manager as state it owns.
 
 % \balance left out: with the references spilling to a second page it strands one entry on a third.
 \bibliographystyle{IEEEtran}
