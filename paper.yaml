@@ -1,6 +1,5 @@
 slug: source-agnostic-observatory
 title: "Operating LLM-Generated Data Wrappers in Production: A 149-Day Case Study of What Breaks in a Smart-City Intake Layer"
-# Authors are anonymized in the manuscript for PRDC double-blind review; restore for camera-ready.
 authors:
   - Daniel Martins Ferreira
   - Sebastião Teixeira

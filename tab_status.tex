@@ -17,9 +17,8 @@ CSV  & \nCSV{} &  14 (58.3\%) &  3 &  1 & \nDataPointsCSV{} \\
 All  & \nWrappers{} & \nCompleted{} (\pctCompleted\%) & \nRetried{} & 32 & \nDataPoints{} \\
 \bottomrule
 \multicolumn{6}{@{}p{0.95\columnwidth}@{}}{\footnotesize
-\textsuperscript{a}A bookkeeping state for API pollers: the operator's re-execute
-route marks it at launch and the supervisor does not respawn completed wrappers, so
-all 52 ended silently on a later deploy; none finished on its own
-(Section~\ref{sec:res-faults}).} \\
+\textsuperscript{a}A bookkeeping state: the re-execute route marks API pollers
+completed at launch and the supervisor does not respawn them after a restart, so all
+52 ended silently on a later deploy (Section~\ref{sec:res-faults}).} \\
 \end{tabular}
 \end{table}
