@@ -29,12 +29,13 @@ abstract: >
   repair the extraction wrapper, mapping REST APIs, spreadsheets, and CSV files to a normalized
   (timestamp, value) series. Over 396 wrappers and 164,322 measurements, at least one wrapper in
   seven crashed with an uncaught exception; the repair loop stopped the crash in 42 of the 43
-  wrappers it reached and restored output in 32. What filled the error column was operational: 65
-  wrappers (16%) never received code because the model's free-tier quota, an overload, or our own
-  restarts stopped generation, an execution watchdog we had set shorter than the feeds' polling
-  period killed 69 API pollers, and one crash went unrepaired because the repair call itself hit
-  the quota. Two of four inspected repairs recovered by swallowing an upstream error, a move our
-  own generation prompt prescribes, so we score recovery as resumed output and treat value
-  correctness as open; a re-extraction of eight public sources matched 84 of 95 stored values
-  exactly, the rest upstream revisions. We close with the operational rules the deployment taught
-  us, each of which cost us data or the means to audit it.
+  wrappers it reached and restored output in 32. Among faults visible as a process exit, what
+  filled the error column was operational: 65 wrappers (16%) never received code because the
+  model's free-tier quota, an overload, or our own restarts stopped generation, an execution
+  watchdog we had set shorter than the feeds' polling period killed 69 API pollers, and one crash
+  went unrepaired because the repair call itself hit the quota. Two of four inspected repairs
+  recovered by swallowing an upstream error, a move our own generation prompt prescribes, so we
+  score recovery as resumed output and treat value correctness as open; a re-extraction of eight
+  public sources matched 84 of 95 stored values exactly, the rest upstream revisions. We close
+  with the operational rules the deployment taught us, each of which cost us data or the means to
+  audit it.
