@@ -24,9 +24,9 @@
   node[above, pos=.42, align=center, fill=white, inner sep=1pt]
   {watchdog: 54\\repair blocked: 1} (err.north east);
 \draw[flow] (exec.south) to[bend right=24]
-  node[left, pos=.45]{crash} (retry.north west);
+  node[left, pos=.45, align=center]{crash: 50\\(43 wrappers)} (retry.north west);
 \draw[flow] (retry.north) to[bend right=24]
-  node[right, pos=.55, align=center]{repair:\\50 deploys} (exec.south east);
+  node[right, pos=.6, align=center, inner sep=1pt]{repair:\\50 deploys} (exec.south east);
 \draw[flow] (exec.east) to[out=-20, in=110]
   node[fill=white, inner sep=1.5pt, pos=.55, align=center]
   {deleted: 126\\timeout: 15} (stop.north);

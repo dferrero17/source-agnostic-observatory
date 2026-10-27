@@ -1,5 +1,7 @@
 % Whole-system architecture, column-shaped (portrait) so it stays legible at
-% one IEEE column. Two planes are told apart by line style:
+% one IEEE column. Flow reads top to bottom: external sources at the top, the
+% ingestion path down the right-hand column, the serving path to the UI at the
+% bottom. Line styles tell the planes apart:
 %   thin grey   = REST serving plane (gateway fronts every service)
 %   solid black = asynchronous data/control flow across the two brokers
 %   dashed      = process spawn/repair and source reads
@@ -20,44 +22,44 @@
   bi/.style={{Stealth[length=4pt]}-{Stealth[length=4pt]}, semithick},
   lbl/.style={font=\scriptsize, fill=white, inner sep=1pt}]
 
-% --- clients and gateway (top) ---
-\node[cli] (ui) at (0.1,7.5) {React UI: dashboard + source-registration wizard};
-\node[svc, minimum width=70pt] (gw) at (-1.3,6.3) {nginx API gateway};
-\node[opt] (kc) at (2.4,6.3) {Keycloak\\(optional)};
-
-% --- microservices (Python/FastAPI): serving-only on top, ingestion below ---
-\node[svc] (us) at (-2.0,5.0) {user};
-\node[svc] (kb) at (0.3,5.0) {knowledge\\base};
-\node[svc] (rs) at (-2.4,3.7) {resource\\gen + repair};
-\node[svc] (is) at (-0.1,3.7) {indicator};
+% --- ingestion path: top to bottom down the right-hand column ---
+\node[ext] (src) at (2.3,7.6) {external sources\\API / CSV / XLSX};
+\node[svc, minimum width=62pt] (wr) at (2.3,6.3) {wrapper processes\\(generated code)};
+\node[bus] (dmq) at (2.3,5.0) {data-mq\\data plane};
 \node[svc] (dc) at (2.3,3.7) {data\\collector};
-% dotted backdrop marking the service mesh (drawn behind the labels above)
-\draw[rounded corners=3pt, dotted, gray!70] (-3.35,3.05) rectangle (3.35,5.62);
+\node[bus] (smq) at (0.0,2.5) {services-mq\\control plane};
+\node[svc] (is) at (-2.3,2.5) {indicator\\store, merge};
 
-% --- two brokers ---
-\node[bus] (smq) at (-1.1,2.0) {services-mq\\control plane};
-\node[bus] (dmq) at (2.3,2.0) {data-mq\\data plane};
+% --- the manager: resource service spawns and repairs the wrappers ---
+\node[svc, minimum width=58pt] (rs) at (-2.3,6.3) {resource service\\gen + repair};
 
-% --- ingestion workers and the sources they read ---
-\node[svc, minimum width=62pt] (wr) at (2.3,0.7) {wrapper processes};
-\node[ext] (src) at (2.3,-0.6) {external sources\\API / CSV / XLSX};
+% --- remaining services and the serving path at the bottom ---
+\node[svc] (us) at (-2.3,4.4) {user};
+\node[svc] (kb) at (-2.3,1.2) {knowledge\\base};
+\node[svc, minimum width=70pt] (gw) at (0.0,0.0) {nginx API gateway};
+\node[opt] (kc) at (2.4,0.0) {Keycloak\\(optional)};
+\node[cli] (ui) at (0.0,-1.2) {React UI: dashboard + source-registration wizard};
 
-% REST serving plane: the gateway fronts the whole mesh
-\draw[bi, gray!55] (ui) -- (gw);
-\draw[rest, dashed] (gw) -- node[lbl,above]{OIDC} (kc);
-\draw[rest] (gw.south) to[out=-90,in=150] node[lbl,left,pos=.55]{REST} (-2.0,5.42);
+% dotted backdrop marking the Python/FastAPI service mesh
+\draw[rounded corners=3pt, dotted, gray!70] (-3.35,0.6) rectangle (3.35,7.0);
 
-% --- data plane: a clean vertical column on the right ---
+% --- data plane (solid), flowing down ---
 \draw[flow,dashed] (src) -- node[lbl,right]{extract} (wr);
 \draw[flow] (wr) -- node[lbl,right]{points} (dmq);
 \draw[flow] (dmq) -- node[lbl,right]{validate} (dc);
+\draw[flow] (dc.south) to[out=-90,in=0] node[lbl,below,pos=.6]{validated} (smq.east);
+\draw[flow] (smq) -- node[lbl,above]{store} (is);
 
-% --- control plane: services-mq is the hub for resource, indicator, collector ---
-\draw[bi]   (rs.south) to[out=-80,in=160] node[lbl,above,pos=.55]{id map} (smq.west);
-\draw[flow] (smq.north) to[out=80,in=-100] node[lbl,left,pos=.5]{store, merge} (is.south);
-\draw[flow] (dc.west) to[out=180,in=20] node[lbl,above,pos=.6]{validated} (smq.east);
+% --- control plane: the resource service owns the wrappers ---
+\draw[dep] (rs) -- node[lbl,above]{spawn, repair} (wr);
+\draw[bi]  (rs.south) to[out=-90,in=180] node[lbl,left,pos=.45]{id map} (smq.west);
 
-% --- resource service spawns and repairs the wrapper processes ---
-\draw[dep] (rs.south) to[out=-90,in=180,looseness=1.2]
-  node[lbl,below,pos=.75]{spawn, repair} (wr.west);
+% --- REST serving plane: the gateway fronts the whole mesh ---
+\draw[bi, gray!55] (ui) -- (gw);
+\draw[rest, dashed] (gw) -- node[lbl,above]{OIDC} (kc);
+\draw[semithick, gray!55] (gw.west) -- (-3.15,0.0) -- node[lbl,left,pos=.5,rotate=90,anchor=south]{REST} (-3.15,6.3);
+\draw[rest] (-3.15,1.2) -- (kb.west);
+\draw[rest] (-3.15,2.5) -- (is.west);
+\draw[rest] (-3.15,4.4) -- (us.west);
+\draw[rest] (-3.15,6.3) -- (rs.west);
 \end{tikzpicture}
